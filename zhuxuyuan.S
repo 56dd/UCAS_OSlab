@@ -22,5 +22,5 @@ end:
     j end
 
 
-
+# 打印反汇编结果 riscv64-unknown-linux-gnu-objdump -d zhuxuyuan
 
