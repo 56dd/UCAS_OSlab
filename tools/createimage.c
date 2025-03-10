@@ -125,6 +125,7 @@ static void create_image(int nfiles, char *files[])
          * TODO:
          * 1. [p1-task3] do padding so that the kernel and every app program
          *  occupies the same number of sectors
+         * 
          * 2. [p1-task4] only padding bootblock is allowed!
          */
         if (strcmp(*files, "bootblock") == 0) {
@@ -215,6 +216,7 @@ static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
 {
     // TODO: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
+    
 }
 
 /* print an error message and exit */

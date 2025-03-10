@@ -75,6 +75,12 @@ int main(void)
 
     bios_putstr("Hello OS!\n\r");
     bios_putstr(buf);
+    //读取终端输入并回显
+    int tmp;
+    while(1){
+        while((tmp=bios_getchar())==-1);
+        bios_putchar(tmp);
+    }
 
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
