@@ -76,14 +76,30 @@ int main(void)
     bios_putstr("Hello OS!\n\r");
     bios_putstr(buf);
     //读取终端输入并回显
+    /*
     int tmp;
     while(1){
         while((tmp=bios_getchar())==-1);
         bios_putchar(tmp);
     }
+    */
 
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
+    int taskid;
+    uint64_t entry_addr;
+    void (*entry) (void);
+    while(1){
+        while((taskid=bios_getchar())==-1);
+        bios_putchar(taskid);
+        taskid -= '0';
+        if(taskid>=0 && taskid<=TASK_MAXNUM){
+            bios_putchar('\n');
+            entry_addr = load_task_img(taskid);
+            entry = (void*) entry_addr;
+            entry();
+        }
+    }
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
     while (1)

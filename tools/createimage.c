@@ -82,6 +82,7 @@ static void create_image(int nfiles, char *files[])
     int tasknum = nfiles - 2;
     int nbytes_kernel = 0;
     int phyaddr = 0;
+    int off = 0;
     FILE *fp = NULL, *img = NULL;
     Elf64_Ehdr ehdr;
     Elf64_Phdr phdr;
@@ -129,12 +130,18 @@ static void create_image(int nfiles, char *files[])
          * 2. [p1-task4] only padding bootblock is allowed!
          */
         if (strcmp(*files, "bootblock") == 0) {
+            off+=1;
             write_padding(img, &phyaddr, SECTOR_SIZE);
+        }
+        else {
+            off+=15;
+            write_padding(img, &phyaddr, off*SECTOR_SIZE);
         }
 
         fclose(fp);
         files++;
     }
+    write_padding(img, &phyaddr, 40960*SECTOR_SIZE);
     write_img_info(nbytes_kernel, taskinfo, tasknum, img);
 
     fclose(img);
@@ -216,7 +223,12 @@ static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
 {
     // TODO: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
-    
+    int nsec_kern = NBYTES2SEC(nbytes_kernel);
+    fseek(img, OS_SIZE_LOC, SEEK_SET);  
+    fwrite(&nsec_kern, 2, 1, img);      
+    printf("Kernel size: %d sectors\n", nsec_kern);
+
+
 }
 
 /* print an error message and exit */
