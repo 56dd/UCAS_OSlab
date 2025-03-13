@@ -141,7 +141,6 @@ static void create_image(int nfiles, char *files[])
         fclose(fp);
         files++;
     }
-    write_padding(img, &phyaddr, 40960*SECTOR_SIZE);
     write_img_info(nbytes_kernel, taskinfo, tasknum, img);
 
     fclose(img);
