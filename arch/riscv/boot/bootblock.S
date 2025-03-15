@@ -9,6 +9,9 @@
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
 
+// start address for task info is stored in this loacation, size of array is in following 4 bytes
+.equ app_info_addr_loc, 0x502001f4
+
 .text
 .global main
 
@@ -32,7 +35,9 @@ main:
 
 
 	// TODO: [p1-task4] load task-related arguments and pass them to kernel
-
+	la t1, app_info_addr_loc	
+	lw a0, (t1)		// pass the location for task info as parameter 1
+	lw a1, 4(t1)	// pass the size as parameter 2
 
 	// TODO: [p1-task2] jump to kernel to start UCAS-OS
 	jal kernel

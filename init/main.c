@@ -36,17 +36,25 @@ static void init_jmptab(void)
     jmptab[SD_READ]         = (long (*)())sd_read;
 }
 
-static void init_task_info(void)
+static void init_task_info(int app_info_loc, int app_info_size)
 {
     // TODO: [p1-task4] Init 'tasks' array via reading app-info sector
     // NOTE: You need to get some related arguments from bootblock first
+    int start_sec, blocknums;
+    start_sec = app_info_loc / SECTOR_SIZE;
+    blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec + 1;
+    int task_info_addr = TASK_INFO_MEM;
+    bios_sd_read(task_info_addr, blocknums, start_sec);
+    int start_addr = (TASK_INFO_MEM + app_info_loc - start_sec * SECTOR_SIZE);
+    uint8_t *tmp = (uint8_t *)(start_addr);
+    memcpy((uint8_t *)tasks, tmp, app_info_size);
 }
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
 /************************************************************/
 
-int main(void)
+int main(int app_info_loc, int app_info_size)
 {
     // Check whether .bss section is set to zero
     int check = bss_check();
@@ -55,7 +63,7 @@ int main(void)
     init_jmptab();
 
     // Init task information (〃'▽'〃)
-    init_task_info();
+    init_task_info(app_info_loc, app_info_size);
 
     // Output 'Hello OS!', bss check result and OS version
     char output_str[] = "bss check: _ version: _\n\r";
@@ -86,7 +94,8 @@ int main(void)
 
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
-    int taskid;
+    // task 3
+    /*int taskid;
     uint64_t entry_addr;
     void (*entry) (void);
     while(1){
@@ -99,6 +108,30 @@ int main(void)
             entry = (void*) entry_addr;
             entry();
         }
+    }
+    */
+    char taskname[16] = "";
+    char *str_tmp = "a";
+    int tmp;
+    uint64_t entry_addr;
+    void (*entry) (void);
+    while(1){
+        while((tmp=bios_getchar())==-1);
+        bios_putchar(tmp);
+        if(tmp == '#'){
+            bios_putchar('\n');
+            entry_addr = load_task_img(taskname);
+            if(entry_addr!=0){
+                entry = (void*) entry_addr;
+                entry();
+            }
+            taskname[0]='\0';
+        }
+        else{
+            str_tmp[0]=tmp;
+            strcat(taskname, str_tmp);
+        }
+        
     }
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)

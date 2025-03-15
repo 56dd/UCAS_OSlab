@@ -12,6 +12,7 @@
 #define SECTOR_SIZE 512
 #define BOOT_LOADER_SIG_OFFSET 0x1fe
 #define OS_SIZE_LOC (BOOT_LOADER_SIG_OFFSET - 2)
+#define APP_INFO_ADDR_LOC (BOOT_LOADER_SIG_OFFSET - 10)
 #define BOOT_LOADER_SIG_1 0x55
 #define BOOT_LOADER_SIG_2 0xaa
 
@@ -19,7 +20,9 @@
 
 /* TODO: [p1-task4] design your own task_info_t */
 typedef struct {
-
+    char task_name[16];
+    int start_addr;
+    int block_nums;
 } task_info_t;
 
 #define TASK_MAXNUM 16
@@ -42,7 +45,7 @@ static uint32_t get_memsz(Elf64_Phdr phdr);
 static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr);
 static void write_padding(FILE *img, int *phyaddr, int new_phyaddr);
 static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
-                           short tasknum, FILE *img);
+                           short tasknum, FILE *img, int *taskinfo_addr);
 
 int main(int argc, char **argv)
 {
@@ -95,6 +98,7 @@ static void create_image(int nfiles, char *files[])
     for (int fidx = 0; fidx < nfiles; ++fidx) {
 
         int taskidx = fidx - 2;
+        int start_addr = phyaddr;
 
         /* open input file */
         fp = fopen(*files, "r");
@@ -130,19 +134,23 @@ static void create_image(int nfiles, char *files[])
          * 2. [p1-task4] only padding bootblock is allowed!
          */
         if (strcmp(*files, "bootblock") == 0) {
-            off+=1;
             write_padding(img, &phyaddr, SECTOR_SIZE);
         }
-        else {
-            off+=15;
-            write_padding(img, &phyaddr, off*SECTOR_SIZE);
+        else if(tasknum>=0){
+            taskinfo[taskidx].task_name[0]= '\0';
+            strcat(taskinfo[taskidx].task_name, *files);
+            taskinfo[taskidx].start_addr = start_addr;
+            taskinfo[taskidx].block_nums  = NBYTES2SEC(phyaddr) - start_addr / SECTOR_SIZE + 1;
+            printf("current phyaddr:%x\n", phyaddr);
+            printf("%s: start_addr is %x, blocknums is %d\n",\
+            taskinfo[taskidx].task_name, taskinfo[taskidx].start_addr,taskinfo[taskidx].block_nums);
         }
 
         fclose(fp);
         files++;
     }
-    write_img_info(nbytes_kernel, taskinfo, tasknum, img);
-
+    write_img_info(nbytes_kernel, taskinfo, tasknum, img, &phyaddr);
+    printf("current phyaddr:%x\n", phyaddr);
     fclose(img);
 }
 
@@ -212,22 +220,42 @@ static void write_padding(FILE *img, int *phyaddr, int new_phyaddr)
     }
 
     while (*phyaddr < new_phyaddr) {
-        fputc(0, img);
+        fputc(1, img);
         (*phyaddr)++;
     }
 }
 
 static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
-                           short tasknum, FILE * img)
+                           short tasknum, FILE * img, int *taskinfo_addr)
 {
     // TODO: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
+    // 将kernal的size写进bootloader的末尾两个字节
     int nsec_kern = NBYTES2SEC(nbytes_kernel);
     fseek(img, OS_SIZE_LOC, SEEK_SET);  
     fwrite(&nsec_kern, 2, 1, img);      
     printf("Kernel size: %d sectors\n", nsec_kern);
-
-
+    // 将taskinfo的size写进bootloader的末尾几个字节
+    int info_size = sizeof(task_info_t) * tasknum;
+    // 将定位信息写进bootloader的末尾几个字节
+    fseek(img, APP_INFO_ADDR_LOC, SEEK_SET);  // 文件指针指到 APP_INFO_ADDR_LOC
+    fwrite(taskinfo_addr, 4, 1, img);
+    printf("Address for task info: %x.\n", *taskinfo_addr);
+    fwrite(&info_size, 4, 1, img);    
+    printf("Size of task info array: %d bytes.\n", info_size);
+    fseek(img, *taskinfo_addr, SEEK_SET);  
+    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
+    printf("Write %d tasks into image.\n",  tasknum);
+    *taskinfo_addr+=info_size;
+    fseek(img, *taskinfo_addr, SEEK_SET);
+    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
+    *taskinfo_addr+=info_size;
+    fseek(img, *taskinfo_addr, SEEK_SET);
+    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
+    *taskinfo_addr+=info_size;
+    fseek(img, *taskinfo_addr, SEEK_SET);
+    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
+    *taskinfo_addr+=info_size;
 }
 
 /* print an error message and exit */
