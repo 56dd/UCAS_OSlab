@@ -1,6 +1,6 @@
+#include <os/kernel.h>
 #include <os/task.h>
 #include <os/string.h>
-#include <os/kernel.h>
 #include <type.h>
 
 /* uint64_t load_task_img(int taskid)
@@ -24,7 +24,6 @@
 
 // [p1-task4]
 uint64_t load_task_img(char *taskname){
-    bios_putstr(taskname);
     int i;
     int entry_addr;
     int start_sec;
@@ -43,4 +42,33 @@ uint64_t load_task_img(char *taskname){
     }
     bios_putchar('\n');
     return 0;
+}
+
+void batch(){
+    uint64_t entry_addr;
+    void (*entry) (void);
+    char taskname[16] = "number";
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
+    memcpy(taskname, "add10", 6);
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
+    memcpy(taskname, "mul3", 5);
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
+    memcpy(taskname, "square", 7);
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
 }
