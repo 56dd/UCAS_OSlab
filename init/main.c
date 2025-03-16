@@ -42,7 +42,7 @@ static void init_task_info(int app_info_loc, int app_info_size)
     // NOTE: You need to get some related arguments from bootblock first
     int start_sec, blocknums;
     start_sec = app_info_loc / SECTOR_SIZE;
-    blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec + 1;
+    blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec;
     int task_info_addr = TASK_INFO_MEM;
     bios_sd_read(task_info_addr, blocknums, start_sec);
     int start_addr = (TASK_INFO_MEM + app_info_loc - start_sec * SECTOR_SIZE);
@@ -111,7 +111,7 @@ int main(int app_info_loc, int app_info_size)
     }
     */
     char taskname[16] = "";
-    char *str_tmp = "a";
+    int j=0;
     int tmp;
     uint64_t entry_addr;
     void (*entry) (void);
@@ -120,16 +120,16 @@ int main(int app_info_loc, int app_info_size)
         bios_putchar(tmp);
         if(tmp == '#'){
             bios_putchar('\n');
+            taskname[j]='\0';
             entry_addr = load_task_img(taskname);
             if(entry_addr!=0){
                 entry = (void*) entry_addr;
                 entry();
             }
-            taskname[0]='\0';
+            j=0;
         }
         else{
-            str_tmp[0]=tmp;
-            strcat(taskname, str_tmp);
+            taskname[j++]=tmp;
         }
         
     }

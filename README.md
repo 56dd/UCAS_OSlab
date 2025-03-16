@@ -148,3 +148,105 @@ uint64_t entry_addr;
 
 ### 任务4:镜像文件的紧密排列
 
+这里我们需要修改createimage.c文件，在main中除了bootblock需要padding第0个扇区，kernel以及其他应用程序以及要新添的taskinfo都不进行padding了。
+
+我们定义
+
+```
+typedef struct {
+    char task_name[16];
+    int start_addr;
+    int block_nums;
+} task_info_t;
+```
+
+然后我们将task_info_t数组放在image文件的末尾，具体位置及大小将储存在bootloader的倒数第三个字和倒数第二个字当中：
+
+所以我们添加以下代码：
+
+```
+    int info_size = sizeof(task_info_t) * tasknum;
+    // 将定位信息写进bootloader的末尾几个字节
+    fseek(img, APP_INFO_ADDR_LOC, SEEK_SET);  // 文件指针指到 APP_INFO_ADDR_LOC
+    fwrite(taskinfo_addr, 4, 1, img);
+    printf("Address for task info: %x.\n", *taskinfo_addr);
+    fwrite(&info_size, 4, 1, img);    
+    printf("Size of task info array: %d bytes.\n", info_size);
+    fseek(img, *taskinfo_addr, SEEK_SET);  
+    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
+    printf("Write %d tasks into image.\n",  tasknum);
+    *taskinfo_addr+=info_size;
+```
+
+同时我们需要填写appinfo中的信息：
+
+```
+else if(tasknum>=0){
+            taskinfo[taskidx].task_name[0]= '\0';
+            strcat(taskinfo[taskidx].task_name, *files);
+            taskinfo[taskidx].start_addr = start_addr;
+            taskinfo[taskidx].block_nums  = NBYTES2SEC(phyaddr) - start_addr / SECTOR_SIZE;
+            printf("current phyaddr:%x\n", phyaddr);
+            printf("%s: start_addr is %x, blocknums is %d\n",\
+            taskinfo[taskidx].task_name, taskinfo[taskidx].start_addr,taskinfo[taskidx].block_nums);
+        }
+```
+
+这里注意，我们需要将最后一个扇区进行padding，否则在load_task_img函数中，由于没有进行padding，所以会出现越界访问。这是因为qemu模拟器会认为我们的disk大小就是image大小。
+
+我们在bootblock中需要添加以下代码，将appinfo的位置和大小作为输入，输入到kernel当中：
+
+```
+la t1, app_info_addr_loc	
+	lw a0, (t1)		// pass the location for task info as parameter 1
+	lw a1, 4(t1)	// pass the size as parameter 2
+```
+
+在main中，我们使用init_task_info函数将appinfo的信息初始化到tasks数组中。这里我们把appinfo放置到内存的地址是0x52300000。
+
+```
+static void init_task_info(int app_info_loc, int app_info_size)
+{
+    // TODO: [p1-task4] Init 'tasks' array via reading app-info sector
+    // NOTE: You need to get some related arguments from bootblock first
+    int start_sec, blocknums;
+    start_sec = app_info_loc / SECTOR_SIZE;
+    blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec;
+    int task_info_addr = TASK_INFO_MEM;
+    bios_sd_read(task_info_addr, blocknums, start_sec);
+    int start_addr = (TASK_INFO_MEM + app_info_loc - start_sec * SECTOR_SIZE);
+    uint8_t *tmp = (uint8_t *)(start_addr);
+    memcpy((uint8_t *)tasks, tmp, app_info_size);
+}
+```
+
+接下来我们修改load_task_img函数，首先我们将输入改为字符串，这样我们比较字符串与每一个task的name，如果有匹配，就将该task加载到指定位置的内存当中。
+
+```
+uint64_t load_task_img(char *taskname){
+    int i;
+    int entry_addr;
+    int start_sec;
+    for(i=0;i<TASK_MAXNUM;i++){
+        if(strcmp(taskname, tasks[i].task_name)==0){
+            entry_addr = TASK_MEM_BASE + TASK_SIZE * i;
+            start_sec = tasks[i].start_addr / 512;                      // 起始扇区：向下取整
+            bios_sd_read(entry_addr, tasks[i].block_nums, start_sec);  
+            return entry_addr + (tasks[i].start_addr - start_sec*512);  // 返回程序存储的起始位置
+        }
+    }
+    // 匹配失败，提醒重新输入
+    char *output_str = "Fail to find the task! Please try again!";
+    for(i=0; i<strlen(output_str); i++){
+        bios_putchar(output_str[i]);
+    }
+    bios_putchar('\n');
+    return 0;
+}
+```
+
+至此，最后只需要修改main当中的交互逻辑即可。
+
+### 任务5：批处理运行多个用户程序和管道输入
+
+

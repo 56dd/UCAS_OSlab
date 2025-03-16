@@ -140,7 +140,7 @@ static void create_image(int nfiles, char *files[])
             taskinfo[taskidx].task_name[0]= '\0';
             strcat(taskinfo[taskidx].task_name, *files);
             taskinfo[taskidx].start_addr = start_addr;
-            taskinfo[taskidx].block_nums  = NBYTES2SEC(phyaddr) - start_addr / SECTOR_SIZE + 1;
+            taskinfo[taskidx].block_nums  = NBYTES2SEC(phyaddr) - start_addr / SECTOR_SIZE;
             printf("current phyaddr:%x\n", phyaddr);
             printf("%s: start_addr is %x, blocknums is %d\n",\
             taskinfo[taskidx].task_name, taskinfo[taskidx].start_addr,taskinfo[taskidx].block_nums);
@@ -151,6 +151,10 @@ static void create_image(int nfiles, char *files[])
     }
     write_img_info(nbytes_kernel, taskinfo, tasknum, img, &phyaddr);
     printf("current phyaddr:%x\n", phyaddr);
+    fseek(img, phyaddr, SEEK_SET);
+    off = NBYTES2SEC(phyaddr);
+    printf("%x\n", off * SECTOR_SIZE);
+    write_padding(img, &phyaddr, off * SECTOR_SIZE);
     fclose(img);
 }
 
@@ -246,15 +250,6 @@ static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
     fseek(img, *taskinfo_addr, SEEK_SET);  
     fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
     printf("Write %d tasks into image.\n",  tasknum);
-    *taskinfo_addr+=info_size;
-    fseek(img, *taskinfo_addr, SEEK_SET);
-    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
-    *taskinfo_addr+=info_size;
-    fseek(img, *taskinfo_addr, SEEK_SET);
-    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
-    *taskinfo_addr+=info_size;
-    fseek(img, *taskinfo_addr, SEEK_SET);
-    fwrite(taskinfo, sizeof(task_info_t), tasknum, img);
     *taskinfo_addr+=info_size;
 }
 
