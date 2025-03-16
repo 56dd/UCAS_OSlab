@@ -24,6 +24,7 @@
 
 // [p1-task4]
 uint64_t load_task_img(char *taskname){
+    bios_putstr(taskname);
     int i;
     int entry_addr;
     int start_sec;

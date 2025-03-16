@@ -6,6 +6,8 @@
 ENTRY(_start)
 
     /* TODO: [p1-task3] setup C runtime environment for the user program */
+    addi t2, sp, 0
+
     la t0, __bss_start         // bss起始地址
     la t1, __BSS_END__         // bss终止地址
 do_clear:  
@@ -14,15 +16,19 @@ do_clear:
     bltu t0, t1, do_clear
 
     li sp, USER_STACK
-    addi sp, sp, -8
+    addi sp, sp, -16
     sd ra, 0(sp)
+    sd t2, 8(sp)
 
     /* TODO: [p1-task3] enter main function */
     jal main
 
     /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
     ld ra, 0(sp)
+    ld t2, 8(sp)
     addi sp, sp, 8
+    addi sp, sp, 16
+    addi sp, t2, 0
     jalr ra
 
     /************************************************************/

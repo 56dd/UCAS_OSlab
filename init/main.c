@@ -121,6 +121,7 @@ int main(int app_info_loc, int app_info_size)
         if(tmp == '#'){
             bios_putchar('\n');
             taskname[j]='\0';
+            bios_putstr(taskname);
             entry_addr = load_task_img(taskname);
             if(entry_addr!=0){
                 entry = (void*) entry_addr;
