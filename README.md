@@ -146,7 +146,7 @@ uint64_t entry_addr;
 
 至此S-core任务已完成。
 
-### 任务4:镜像文件的紧密排列
+### 任务4: 镜像文件的紧密排列
 
 这里我们需要修改createimage.c文件，在main中除了bootblock需要padding第0个扇区，kernel以及其他应用程序以及要新添的taskinfo都不进行padding了。
 
