@@ -53,13 +53,13 @@ void batch(){
     entry = (void*) entry_addr;
     entry();
     }
-    memcpy(taskname, "add10", 6);
+    memcpy(taskname, "mul3", 5);
     entry_addr = load_task_img(taskname);
     if(entry_addr!=0){
     entry = (void*) entry_addr;
     entry();
     }
-    memcpy(taskname, "mul3", 5);
+    memcpy(taskname, "add10", 6);
     entry_addr = load_task_img(taskname);
     if(entry_addr!=0){
     entry = (void*) entry_addr;

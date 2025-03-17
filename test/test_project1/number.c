@@ -10,7 +10,7 @@ int main()
     bios_putstr("请输入数字:");
     while(1){
     while((tmp = bios_getchar())==-1);
-        if(tmp == '#')
+        if(tmp == '\r')
         {
             bios_putchar('\n');
             buf[i++]='\0';

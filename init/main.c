@@ -118,7 +118,7 @@ int main(int app_info_loc, int app_info_size)
     while(1){
         while((tmp=bios_getchar())==-1);
         bios_putchar(tmp);
-        if(tmp == '#'){
+        if(tmp == '\r'){
             bios_putchar('\n');
             taskname[j]='\0';
             if(strcmp(taskname,"batch")==0){
