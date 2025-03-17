@@ -8,41 +8,34 @@
  */
 
 #define CYCLE_PER_MOVE 40
+#define START_POINT 20 //0~50
 
 static char blank[] = {"                                                                               "};
 static char plane1[] = {"    \\\\   "};
 static char plane2[] = {" \\====== "};
 static char plane3[] = {"    //   "};
 
+int j=14;
+volatile int cyc=0;
+
 int main(void)
 {
-    int j = 14;
-    int remain_length;
-
     while (1)
     {
         int clk = sys_get_tick();
-        remain_length = 40;
-        sys_set_sche_workload(remain_length);
+        for(int i=START_POINT; i<60;++i){
+            sys_set_sche_workload(60-i);
+            
+            for(int t=0;t<CYCLE_PER_MOVE;++t)cyc++;
+            sys_move_cursor(i, j + 0);
+            printf("%s", plane1);
 
-        for (int i = 20 * CYCLE_PER_MOVE; i < 60 * CYCLE_PER_MOVE; i++)
-        {
-            /* move */
-            if(i % CYCLE_PER_MOVE == 0)
-            {
-                sys_move_cursor(i/CYCLE_PER_MOVE, j + 0);
-                printf("%s", plane1);
+            sys_move_cursor(i, j + 1);
+            printf("%s", plane2);
 
-                sys_move_cursor(i/CYCLE_PER_MOVE, j + 1);
-                printf("%s", plane2);
-
-                sys_move_cursor(i/CYCLE_PER_MOVE, j + 2);
-                printf("%s", plane3);
-                // sys_yield();
-                // for (int j=0;j<200000;j++); // wait
-                if (remain_length) remain_length--;
-                sys_set_sche_workload(remain_length);
-            }
+            sys_move_cursor(i, j + 2);
+            printf("%s", plane3);
+            // sys_yield();
         }
         // sys_yield();
         sys_move_cursor(0, j);
@@ -54,61 +47,6 @@ int main(void)
 
         clk = sys_get_tick() - clk;
         sys_move_cursor(0, 23);
-        printf("[fly4] used time per round: %d tick.",clk);
+        printf("[fly4] cycles: %d, used time per round: %d tick.",cyc, clk);
     }
 }
-
-// int main(void)
-// {
-//     int j = 10;
-
-//     while (1)
-//     {
-//         for (int i = 0; i < 50; i++)
-//         {
-//             /* move */
-//             kernel_move_cursor(i, j + 0);
-//             kernel_print("%s", (long)plane1, 0);
-
-//             kernel_move_cursor(i, j + 1);
-//             kernel_print("%s", (long)plane2, 0);
-
-//             kernel_move_cursor(i, j + 2);
-//             kernel_print("%s", (long)plane3, 0);
-
-//             kernel_move_cursor(i, j + 3);
-//             kernel_print("%s", (long)plane4, 0);
-
-//             kernel_move_cursor(i, j + 4);
-//             kernel_print("%s", (long)plane5, 0);
-
-//             kernel_move_cursor(i, j + 5);
-//             kernel_print("%s", (long)plane6, 0);
-
-//             kernel_move_cursor(i, j + 6);
-//             kernel_print("%s", (long)plane7, 0);
-//         }
-//         kernel_yield();
-
-//         kernel_move_cursor(0, j + 0);
-//         kernel_print("%s", (long)blank, 0);
-
-//         kernel_move_cursor(0, j + 1);
-//         kernel_print("%s", (long)blank, 0);
-
-//         kernel_move_cursor(0, j + 2);
-//         kernel_print("%s", (long)blank, 0);
-
-//         kernel_move_cursor(0, j + 3);
-//         kernel_print("%s", (long)blank, 0);
-
-//         kernel_move_cursor(0, j + 4);
-//         kernel_print("%s", (long)blank, 0);
-
-//         kernel_move_cursor(0, j + 5);
-//         kernel_print("%s", (long)blank, 0);
-
-//         kernel_move_cursor(0, j + 6);
-//         kernel_print("%s", (long)blank, 0);
-//     }
-// }
