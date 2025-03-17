@@ -94,7 +94,7 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-extern pcb_t * volatile current_running;
+register pcb_t * current_running asm("tp");
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];

@@ -1,4 +1,4 @@
-#include <os/string.h>
+#include <string.h>
 
 void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len)
 {

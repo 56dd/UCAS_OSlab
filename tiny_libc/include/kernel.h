@@ -1,13 +1,27 @@
 #ifndef __INCLUDE_KERNEL_H__
 #define __INCLUDE_KERNEL_H__
 
+#include <stdint.h>
+
 #define KERNEL_JMPTAB_BASE 0x51ffff00
 typedef enum {
     CONSOLE_PUTSTR,
     CONSOLE_PUTCHAR,
     CONSOLE_GETCHAR,
+    SD_READ,
+    SD_WRITE,
+    QEMU_LOGGING,
+    SET_TIMER,
+    READ_FDT,
+    MOVE_CURSOR,
+    PRINT,
+    YIELD,
+    MUTEX_INIT,
+    MUTEX_ACQ,
+    MUTEX_RELEASE,
     NUM_ENTRIES
 } jmptab_idx_t;
+
 
 static inline long call_jmptab(long which, long arg0, long arg1, long arg2, long arg3, long arg4)
 {

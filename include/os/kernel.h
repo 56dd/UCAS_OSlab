@@ -10,6 +10,16 @@ typedef enum {
     CONSOLE_PUTCHAR,
     CONSOLE_GETCHAR,
     SD_READ,
+    SD_WRITE,
+    QEMU_LOGGING,
+    SET_TIMER,
+    READ_FDT,
+    MOVE_CURSOR,
+    PRINT,
+    YIELD,
+    MUTEX_INIT,
+    MUTEX_ACQ,
+    MUTEX_RELEASE,
     NUM_ENTRIES
 } jmptab_idx_t;
 
@@ -45,7 +55,28 @@ static inline int bios_sd_read(unsigned mem_address, unsigned num_of_blocks, \
 }
 
 /************************************************************/
-/* Do not touch this comment. Reserved for future projects. */
+
+static inline int bios_sd_write(unsigned mem_address, unsigned num_of_blocks, \
+                              unsigned block_id)
+{
+    return call_jmptab(SD_WRITE, (long)mem_address, (long)num_of_blocks, \
+                        (long)block_id, 0, 0);
+}
+
+static inline void bios_logging(char *str)
+{
+    call_jmptab(QEMU_LOGGING, (long)str, 0, 0, 0, 0);
+}
+
+static inline void bios_set_timer(uint64_t stime_value)
+{
+    call_jmptab(SET_TIMER, (long)stime_value, 0, 0, 0, 0);
+}
+
+static inline uint64_t bios_read_fdt(enum FDT_TYPE type)
+{
+    return call_jmptab(READ_FDT, (long)type, 0, 0, 0, 0);
+}
 /************************************************************/
 
 #endif
