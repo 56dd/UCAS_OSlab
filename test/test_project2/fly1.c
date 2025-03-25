@@ -20,6 +20,7 @@ volatile int cyc=0;
 
 int main(void)
 {
+    /*
     while (1)
     {
         int clk = sys_get_tick();
@@ -49,4 +50,5 @@ int main(void)
         sys_move_cursor(0, 20);
         printf("[fly1] cycles: %d, used time per round: %d tick.",cyc, clk);
     }
+    */
 }

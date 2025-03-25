@@ -46,7 +46,7 @@ int main(void)
             sys_move_cursor(i, j + 6);
             printf("%s", plane7);
         }
-        // sys_yield();
+        sys_yield();
 
         sys_move_cursor(0, j + 0);
         printf("%s", blank);

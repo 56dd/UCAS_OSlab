@@ -105,6 +105,8 @@ extern void switch_to(pcb_t *prev, pcb_t *next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
+pcb_t * get_pcb_from_node(list_node_t* node);
+
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
 

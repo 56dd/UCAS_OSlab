@@ -36,6 +36,8 @@ static void init_jmptab(void)
     jmptab[SET_TIMER]       = (long (*)())set_timer;
     jmptab[READ_FDT]        = (long (*)())read_fdt;
     jmptab[MOVE_CURSOR]     = (long (*)())screen_move_cursor;
+    jmptab[WRITE]           = (long (*)())screen_write;
+    jmptab[REFLUSH]         = (long (*)())screen_reflush;
     jmptab[PRINT]           = (long (*)())printk;
     jmptab[YIELD]           = (long (*)())do_scheduler;
     jmptab[MUTEX_INIT]      = (long (*)())do_mutex_lock_init;
@@ -79,17 +81,48 @@ static void init_pcb_stack(
      * simulate a callee-saved context.
      */
     switchto_context_t *pt_switchto =
-        (switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
-
+        (switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));  
+    pcb->kernel_sp = kernel_stack - sizeof(switchto_context_t) - sizeof(regs_context_t); 
+    pt_switchto->regs[0] = (uint64_t)entry_point;     // ra        
+    pt_switchto->regs[1] = pcb->user_sp;  // sp
 }
 
 static void init_pcb(void)
 {
     /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
-
+    // PCB for kernel
+    uint64_t entry[NUM_MAX_TASK+1];   /* entry of all tasks */
+    char needed_tasks[][16] = {
+        "print1", "print2", "lock1", "lock2", "fly"
+    };
+    uint64_t entry_addr;
+    int tasknum = 0;
+    pid0_pcb.status = TASK_RUNNING;
+    pid0_pcb.list.prev = NULL;
+    pid0_pcb.list.next = NULL;
+    init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
+    // load task by name;
+    for(int i= 0; i<5; i++){
+        entry_addr = load_task_img(needed_tasks[i]);
+        // create a PCB
+        if(entry_addr!=0){
+            pcb[tasknum].kernel_sp = (reg_t)(allocKernelPage(1)+PAGE_SIZE);    //分配一页
+            pcb[tasknum].user_sp = (reg_t)(allocUserPage(1)+PAGE_SIZE);
+            pcb[tasknum].pid = tasknum + 1; // pid 0 is for kernel
+            pcb[tasknum].status = TASK_READY;
+            pcb[tasknum].cursor_x = 0;
+            pcb[tasknum].cursor_y = 0;
+            init_pcb_stack(pcb[tasknum].kernel_sp, pcb[tasknum].user_sp, entry_addr, &pcb[tasknum]);
+            // add to ready queue
+            add_node_to_q(&pcb[tasknum].list, &ready_queue);
+            
+            if(++tasknum > NUM_MAX_TASK)  // total tasks should be less than the threshold
+                break;
+        }
+    }
 
     /* TODO: [p2-task1] remember to initialize 'current_running' */
-
+    current_running = &pid0_pcb;
 }
 
 static void init_syscall(void)
@@ -131,55 +164,7 @@ int main(int app_info_loc, int app_info_size)
 
     // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
-    
 
-
-    // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
-    //   and then execute them.
-    // task 3
-    /*int taskid;
-    uint64_t entry_addr;
-    void (*entry) (void);
-    while(1){
-        while((taskid=bios_getchar())==-1);
-        bios_putchar(taskid);
-        taskid -= '0';
-        if(taskid>=0 && taskid<=TASK_MAXNUM){
-            bios_putchar('\n');
-            entry_addr = load_task_img(taskid);
-            entry = (void*) entry_addr;
-            entry();
-        }
-    }
-    */
-    char taskname[16] = "";
-    int j=0;
-    int tmp;
-    uint64_t entry_addr;
-    void (*entry) (void);
-    while(1){
-        while((tmp=bios_getchar())==-1);
-        bios_putchar(tmp);
-        if(tmp == '\r'){
-            bios_putchar('\n');
-            taskname[j]='\0';
-            if(strcmp(taskname,"batch")==0){
-                batch();
-                j = 0;
-                continue;
-            }
-            entry_addr = load_task_img(taskname);
-            if(entry_addr!=0){
-                entry = (void*) entry_addr;
-                entry();
-            }
-            j=0;
-        }
-        else{
-            taskname[j++]=tmp;
-        }
-        
-    }
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
     while (1)

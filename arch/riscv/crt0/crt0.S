@@ -15,7 +15,6 @@ do_clear:
     add t0, t0, 4            // point to next word
     bltu t0, t1, do_clear
 
-    li sp, USER_STACK
     addi sp, sp, -16
     sd ra, 0(sp)
     sd t2, 8(sp)
@@ -26,7 +25,6 @@ do_clear:
     /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
     ld ra, 0(sp)
     ld t2, 8(sp)
-    addi sp, sp, 8
     addi sp, sp, 16
     addi sp, t2, 0
     jalr ra

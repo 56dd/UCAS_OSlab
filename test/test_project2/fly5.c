@@ -6,7 +6,6 @@
  * The ascii airplane is designed by Joan Stark
  * from: https://www.asciiart.eu/vehicles/airplanes
  */
-
 #define CYCLE_PER_MOVE 50
 #define START_POINT 10 //0~50
 
@@ -19,7 +18,8 @@ int j=17;
 volatile int cyc=0;
 
 int main(void)
-{
+{ 
+    /*
     while (1)
     {
         int clk = sys_get_tick();
@@ -49,4 +49,7 @@ int main(void)
         sys_move_cursor(0, 24);
         printf("[fly5] cycles: %d, used time per round: %d tick.",cyc, clk);
     }
+    */
 }
+
+

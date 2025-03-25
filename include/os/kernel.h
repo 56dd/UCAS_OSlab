@@ -15,6 +15,8 @@ typedef enum {
     SET_TIMER,
     READ_FDT,
     MOVE_CURSOR,
+    WRITE,
+    REFLUSH,
     PRINT,
     YIELD,
     MUTEX_INIT,
