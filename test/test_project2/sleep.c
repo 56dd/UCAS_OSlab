@@ -26,6 +26,6 @@ int main(void)
         sys_move_cursor(0, print_location);
         printf("%s", blank);
 
-        // sys_yield();
+        sys_yield();
     }
 }

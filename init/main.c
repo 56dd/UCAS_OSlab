@@ -93,7 +93,7 @@ static void init_pcb(void)
     // PCB for kernel
     uint64_t entry[NUM_MAX_TASK+1];   /* entry of all tasks */
     char needed_tasks[][16] = {
-        "print1", "print2", "lock1", "lock2", "fly"
+        "print1", "print2", "lock1", "lock2", "sleep", "timer", "fly"
     };
     uint64_t entry_addr;
     int tasknum = 0;
@@ -102,7 +102,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for(int i= 0; i<5; i++){
+    for(int i= 0; i<7; i++){
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
         if(entry_addr!=0){
