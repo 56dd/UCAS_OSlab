@@ -240,7 +240,7 @@ void do_mutex_lock_release(int mlock_idx)
 
 如果获得互斥锁就直接返回，否则进入阻塞队列，然后进行上下文切换。
 
-如果释放互斥锁，就从阻塞队列中唤醒一个进程。
+如果释放互斥锁，就从阻塞队列中唤醒一个进程。注意这里之所以没有真正释放互斥锁，是因为如果真的释放了，但对于测试来说，已经申请失败了互斥锁，事实上此时互斥锁是没有任何进程得到的，所以不用释放，直接获得就行。
 
 最后我们还需要完成一个初始化互斥锁的函数：
 
@@ -259,6 +259,28 @@ int do_mutex_lock_init(int key)
 
 这是为了避免重复初始化互斥锁，所以需要一个全局变量lock_used_num来记录已经初始化的互斥锁的数量。如果key已经存在，则直接返回对应的索引，否则新建一个互斥锁，并返回索引。
 
+#### 小bug
+
+在O2测试时，出现报错，发现是进入到了一个非对其的地址，这里我认为原因是load时的地址没有对齐，所以需要修改一下。
+
+```
+bios_sd_read(TMP_MEM_BASE, tasks[i].block_nums, start_sec);
+memcpy((uint8_t *)(uint64_t)(entry_addr), (uint8_t *)(uint64_t)(TMP_MEM_BASE + (tasks[i].start_addr - start_sec*512)), tasks[i].block_nums * 512); 
+return entry_addr;
+```
+
+我们使用一个TMP地址，先将每次每个扇区拷到这个地址，然后再拷贝到目标地址。
+
+修改后问题解决。
+
 ### 任务 3：系统调用
+
+控制状态寄存器：
+
+spec：发生异常的地址（即后续需要返回的地址）
+stvec：中断处理函数的入口地址
+sie：中断使能寄存器
+sstatus
+scause：区分不同例外的入口
 
 

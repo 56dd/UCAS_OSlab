@@ -74,7 +74,14 @@ static void init_pcb_stack(
       */
     regs_context_t *pt_regs =
         (regs_context_t *)(kernel_stack - sizeof(regs_context_t));
-
+    pt_regs->regs[1] = (uint64_t) entry_point;           // ra
+    pt_regs->regs[2] = user_stack;                      // sp
+    pt_regs->regs[4] = (uint64_t)pcb;                             // tp
+    if(pcb->pid==0)
+        pt_regs->sstatus = SR_SPP;      // kernel should not be set to user mode
+    else
+        pt_regs->sstatus = SR_SPIE;  // SPP set to 0, SPIE set to 1
+    pt_regs->sepc = (uint64_t)entry_point;
 
     /* TODO: [p2-task1] set sp to simulate just returning from switch_to
      * NOTE: you should prepare a stack, and push some values to
@@ -83,8 +90,8 @@ static void init_pcb_stack(
     switchto_context_t *pt_switchto =
         (switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));  
     pcb->kernel_sp = kernel_stack - sizeof(switchto_context_t) - sizeof(regs_context_t); 
-    pt_switchto->regs[0] = (uint64_t)entry_point;     // ra        
-    pt_switchto->regs[1] = pcb->user_sp;  // sp
+    pt_switchto->regs[0] = (uint64_t)ret_from_exception;     // ra        
+    pt_switchto->regs[1] = pcb->kernel_sp;  // sp
 }
 
 static void init_pcb(void)
@@ -93,7 +100,7 @@ static void init_pcb(void)
     // PCB for kernel
     uint64_t entry[NUM_MAX_TASK+1];   /* entry of all tasks */
     char needed_tasks[][16] = {
-        "print1", "print2", "lock1", "lock2", "fly"
+        "print1", "print2", "lock1", "lock2", "sleep", "timer", "fly"
     };
     uint64_t entry_addr;
     int tasknum = 0;
@@ -102,7 +109,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for(int i= 0; i<5; i++){
+    for(int i= 0; i<7; i++){
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
         if(entry_addr!=0){
@@ -128,6 +135,16 @@ static void init_pcb(void)
 static void init_syscall(void)
 {
     // TODO: [p2-task3] initialize system call table.
+    syscall[SYSCALL_SLEEP]          = (long (*)())do_sleep;
+    syscall[SYSCALL_YIELD]          = (long (*)())do_scheduler;
+    syscall[SYSCALL_WRITE]          = (long (*)())screen_write;
+    syscall[SYSCALL_CURSOR]         = (long (*)())screen_move_cursor;
+    syscall[SYSCALL_REFLUSH]        = (long (*)())screen_reflush;
+    syscall[SYSCALL_GET_TIMEBASE]   = (long (*)())get_time_base;
+    syscall[SYSCALL_GET_TICK]       = (long (*)())get_ticks;
+    syscall[SYSCALL_LOCK_INIT]      = (long (*)())do_mutex_lock_init;
+    syscall[SYSCALL_LOCK_ACQ]       = (long (*)())do_mutex_lock_acquire;
+    syscall[SYSCALL_LOCK_RELEASE]   = (long (*)())do_mutex_lock_release;
 }
 /************************************************************/
 
