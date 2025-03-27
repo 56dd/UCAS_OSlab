@@ -31,8 +31,9 @@ uint64_t load_task_img(char *taskname){
         if(strcmp(taskname, tasks[i].task_name)==0){
             entry_addr = TASK_MEM_BASE + TASK_SIZE * i;
             start_sec = tasks[i].start_addr / 512;                      // 起始扇区：向下取整
-            bios_sd_read(entry_addr, tasks[i].block_nums, start_sec);  
-            return entry_addr + (tasks[i].start_addr - start_sec*512);  // 返回程序存储的起始位置
+            bios_sd_read(TMP_MEM_BASE, tasks[i].block_nums, start_sec);
+            memcpy((uint8_t *)(uint64_t)(entry_addr), (uint8_t *)(uint64_t)(TMP_MEM_BASE + (tasks[i].start_addr - start_sec*512)), tasks[i].block_nums * 512); 
+            return entry_addr;  // 返回程序存储的起始位置
         }
     }
     // 匹配失败，提醒重新输入
