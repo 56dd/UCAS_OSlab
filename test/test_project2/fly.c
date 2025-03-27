@@ -18,7 +18,7 @@ static char plane7[] = {"        '-'      "};
 
 int main(void)
 {
-    int j = 5;
+    int j = 6;
 
     while (1)
     {
