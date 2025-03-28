@@ -203,60 +203,7 @@ ENDPROC(switch_to)
 ENTRY(ret_from_exception)
   /* TODO: [p2-task3] restore context via provided macro and return to sepc */
   /* HINT: remember to check your sp, does it point to the right address? */
-  # RESTORE_CONTEXT
-  ld x0, OFFSET_REG_ZERO(sp)
-
-  ld ra, OFFSET_REG_RA(sp)
-
-  ld gp, OFFSET_REG_GP(sp)
-  ld tp, OFFSET_REG_TP(sp)
-
-  ld t0, OFFSET_REG_T0(sp)
-  ld t1, OFFSET_REG_T1(sp)
-  ld t2, OFFSET_REG_T2(sp)
-
-  ld s0, OFFSET_REG_S0(sp)
-  ld s1, OFFSET_REG_S1(sp)
-
-  ld a0, OFFSET_REG_A0(sp)
-  ld a1, OFFSET_REG_A1(sp)
-  ld a2, OFFSET_REG_A2(sp)
-  ld a3, OFFSET_REG_A3(sp)
-  ld a4, OFFSET_REG_A4(sp)
-  ld a5, OFFSET_REG_A5(sp)
-  ld a6, OFFSET_REG_A6(sp)
-  ld a7, OFFSET_REG_A7(sp)
-
-  ld s2, OFFSET_REG_S2(sp)
-  ld s3, OFFSET_REG_S3(sp)
-  ld s4, OFFSET_REG_S4(sp)
-  ld s5, OFFSET_REG_S5(sp)
-  ld s6, OFFSET_REG_S6(sp)
-  ld s7, OFFSET_REG_S7(sp)
-  ld s8, OFFSET_REG_S8(sp)
-  ld s9, OFFSET_REG_S9(sp)
-  ld s10, OFFSET_REG_S10(sp)
-  ld s11, OFFSET_REG_S11(sp)
-
-  ld t3, OFFSET_REG_SSTATUS(sp)
-  ld t4, OFFSET_REG_SEPC(sp)
-  ld t5, OFFSET_REG_SBADADDR(sp)
-  ld t6, OFFSET_REG_SCAUSE(sp)
-
-  csrw sstatus, t3
-  csrw sepc, t4
-  csrw sbadaddr, t5
-  csrw scause, t6
-
-  ld t3, OFFSET_REG_T3(sp)
-  ld t4, OFFSET_REG_T4(sp)
-  ld t5, OFFSET_REG_T5(sp)
-  ld t6, OFFSET_REG_T6(sp)
-  
-  addi sp, sp, OFFSET_SIZE
-  sd   sp, PCB_KERNEL_SP(tp)
-  ld sp, PCB_USER_SP(tp)
-
+  RESTORE_CONTEXT
   sret
 ENDPROC(ret_from_exception)
 

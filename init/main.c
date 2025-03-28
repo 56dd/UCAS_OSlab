@@ -77,10 +77,7 @@ static void init_pcb_stack(
     pt_regs->regs[1] = (uint64_t) entry_point;           // ra
     pt_regs->regs[2] = user_stack;                      // sp
     pt_regs->regs[4] = (uint64_t)pcb;                             // tp
-    if(pcb->pid==0)
-        pt_regs->sstatus = SR_SPP;      // kernel should not be set to user mode
-    else
-        pt_regs->sstatus = SR_SPIE;  // SPP set to 0, SPIE set to 1
+    pt_regs->sstatus = SR_SPIE;  // SPIE set to 1
     pt_regs->sepc = (uint64_t)entry_point;
 
     /* TODO: [p2-task1] set sp to simulate just returning from switch_to

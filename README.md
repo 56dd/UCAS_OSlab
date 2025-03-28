@@ -280,7 +280,220 @@ return entry_addr;
 spec：发生异常的地址（即后续需要返回的地址）
 stvec：中断处理函数的入口地址
 sie：中断使能寄存器
-sstatus
+sstatus： 
 scause：区分不同例外的入口
 
+我们首先完成系统调用的初始化，这里syscall是一个函数指针数组，我们对它的一些元素进行初始化。
+
+```
+static void init_syscall(void)
+{
+    // TODO: [p2-task3] initialize system call table.
+    syscall[SYSCALL_SLEEP]          = (long (*)())do_sleep;
+    syscall[SYSCALL_YIELD]          = (long (*)())do_scheduler;
+    syscall[SYSCALL_WRITE]          = (long (*)())screen_write;
+    syscall[SYSCALL_CURSOR]         = (long (*)())screen_move_cursor;
+    syscall[SYSCALL_REFLUSH]        = (long (*)())screen_reflush;
+    syscall[SYSCALL_GET_TIMEBASE]   = (long (*)())get_time_base;
+    syscall[SYSCALL_GET_TICK]       = (long (*)())get_ticks;
+    syscall[SYSCALL_LOCK_INIT]      = (long (*)())do_mutex_lock_init;
+    syscall[SYSCALL_LOCK_ACQ]       = (long (*)())do_mutex_lock_acquire;
+    syscall[SYSCALL_LOCK_RELEASE]   = (long (*)())do_mutex_lock_release;
+}
+```
+
+然后我们需要完善之前的init_pcb_stack函数，这是因为我们需要在kernel_stack存放更多的寄存器，从用户态返回内核态时，我们需要存放所有的寄存器，还需要存放四个csr寄存器（SSTATUS，SEPC， SBADADDR，SCAUSE），同样从内核态返回用户态时，就会重置这些寄存器，所以我们有必要对这些寄存器进行初始化。
+
+```
+    regs_context_t *pt_regs =
+        (regs_context_t *)(kernel_stack - sizeof(regs_context_t));
+    pt_regs->regs[1] = (uint64_t) entry_point;           // ra
+    pt_regs->regs[2] = user_stack;                      // sp
+    pt_regs->regs[4] = (uint64_t)pcb;                             // tp
+    pt_regs->sstatus = SR_SPIE;  // SPIE set to 1
+    pt_regs->sepc = (uint64_t)entry_point;
+```
+
+接下来我们设置stvec寄存器，它存放的是例外处理的入口地址，这里例外处理的入口地址即exception_handler_entry
+
+```
+la t0, exception_handler_entry
+csrw stvec, t0
+```
+
+接下来，初始化例外处理 init_exception()，要做的就是初始化exc_table，即遇到每一种例外如何处理，以及调用刚刚的设置stvec寄存器的汇编程序，设置stvec寄存器。
+
+接下来我们书写exception_handler_entry
+
+```
+  sd sp, PCB_USER_SP(tp)    // store user stack
+  ld sp, PCB_KERNEL_SP(tp)  // recover kernel stack
+  addi sp, sp, -OFFSET_SIZE
+  sd x0, OFFSET_REG_ZERO(sp)
+
+  sd ra, OFFSET_REG_RA(sp)
+
+  sd gp, OFFSET_REG_GP(sp)
+  sd tp, OFFSET_REG_TP(sp)
+
+  sd t0, OFFSET_REG_T0(sp)
+  sd t1, OFFSET_REG_T1(sp)
+  sd t2, OFFSET_REG_T2(sp)
+
+  ld t0, PCB_USER_SP(tp)
+  sd t0, OFFSET_REG_SP(sp)  // store user stack
+
+  sd s0, OFFSET_REG_S0(sp)
+  sd s1, OFFSET_REG_S1(sp)
+
+  sd a0, OFFSET_REG_A0(sp)
+  sd a1, OFFSET_REG_A1(sp)
+  sd a2, OFFSET_REG_A2(sp)
+  sd a3, OFFSET_REG_A3(sp)
+  sd a4, OFFSET_REG_A4(sp)
+  sd a5, OFFSET_REG_A5(sp)
+  sd a6, OFFSET_REG_A6(sp)
+  sd a7, OFFSET_REG_A7(sp)
+
+  sd s2, OFFSET_REG_S2(sp)
+  sd s3, OFFSET_REG_S3(sp)
+  sd s4, OFFSET_REG_S4(sp)
+  sd s5, OFFSET_REG_S5(sp)
+  sd s6, OFFSET_REG_S6(sp)
+  sd s7, OFFSET_REG_S7(sp)
+  sd s8, OFFSET_REG_S8(sp)
+  sd s9, OFFSET_REG_S9(sp)
+  sd s10, OFFSET_REG_S10(sp)
+  sd s11, OFFSET_REG_S11(sp)
+
+  sd t3, OFFSET_REG_T3(sp)
+  sd t4, OFFSET_REG_T4(sp)
+  sd t5, OFFSET_REG_T5(sp)
+  sd t6, OFFSET_REG_T6(sp)
+
+
+  csrr t0, sstatus
+  csrr t1, sepc
+  csrr t2, sbadaddr
+  csrr t3, scause
+  sd t0, OFFSET_REG_SSTATUS(sp)
+  sd t1, OFFSET_REG_SEPC(sp)
+  sd t2, OFFSET_REG_SBADADDR(sp)
+  sd t3, OFFSET_REG_SCAUSE(sp)
+```
+
+  sd sp, PCB_USER_SP(tp)    // store user stack
+  ld sp, PCB_KERNEL_SP(tp)  // recover kernel stack
+
+能从tp中得到用户栈指针的原因是，
+
+```
+register pcb_t * current_running asm("tp");
+```
+
+register关键词表示，我们讲current_running这个变量位置放到了tp中，所以我们是可以根据tp来找到kernel_sp的，同时注意，我们一开始初始化的时候，也是将tp保存了kernel_sp的。然后还要注意的是，保存sp也是有讲究的，我们一开始讲user_stack先存到tp偏移位中，后续可找回并放到sp中。最后，几个重要的csr寄存器也是需要保存的。
+
+```
+    ld t0, PCB_USER_SP(tp)
+  sd t0, OFFSET_REG_SP(sp)  // store user stack
+```
+
+最后我们只需要根据stval,scause两个寄存器进入interrupt_helper函数
+
+```
+  addi a0, sp, 0
+  csrr a1, stval
+  csrr a2, scause
+  call interrupt_helper
+```
+
+在interrupt_helper函数中，我们根据是中断还是异常，分别处理：
+
+```
+    if(scause & SCAUSE_IRQ_MASK) // 中断
+        irq_table[scause & ~SCAUSE_IRQ_MASK](regs, stval, scause);
+    else{
+        exc_table[scause & ~SCAUSE_IRQ_MASK](regs, stval, scause);
+    }
+```
+
+handle_other已经实现，我们不需要管，我们需要实现handle_syscall,这里我们和tiny_libc的syscall库一起书写：
+
+```
+void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
+{
+    regs->sepc += 4; /* when return from syscall, skip the "ecall" */
+    regs->regs[10] = syscall[regs->regs[17]](   /* x17: a7 */
+        regs->regs[10],                         /* x10: a0 */
+        regs->regs[11],                         /* x11: a1 */
+        regs->regs[12],                         /* x12: a2 */
+        regs->regs[13],                         /* x13: a3 */
+        regs->regs[14]                          /* x14: a4 */
+    );
+}
+
+static long invoke_syscall(long sysno, long arg0, long arg1, long arg2,
+                           long arg3, long arg4)
+{
+    long res;
+    asm volatile(
+        "mv     a7, %1\n\t"     /* a7: sysno       */
+        "mv     a0, %2\n\t"     /* a0: arg0        */
+        "mv     a1, %3\n\t"     /* a1: arg1        */
+        "mv     a2, %4\n\t"     /* a2: arg2        */
+        "mv     a3, %5\n\t"     /* a3: arg3        */
+        "mv     a4, %6\n\t"     /* a4: arg4        */
+        "ecall        \n\t"     /* syscall         */
+        "mv     %0, a0\n\t"     /* a0:return value */
+        :"=r"(res)
+        :"r"(sysno), "r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4)
+    );
+    return res;
+}
+```
+
+这里我们使用内联汇编的方式实现用户库里的syscall。
+
+最后就是 ret_from_exception，代码重复简单，不过多赘述，只需注意最后
+
+```
+  sd   sp, PCB_KERNEL_SP(tp)
+  ld sp, PCB_USER_SP(tp)
+```
+
+保存和恢复sp。
+
+至此，系统调用所有步骤已完成，需注意，初始化内核内pcb进程的切换也需要修改，即初始入口地址为ret_from_exception
+
+```
+    switchto_context_t *pt_switchto =
+        (switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));  
+    pcb->kernel_sp = kernel_stack - sizeof(switchto_context_t) - sizeof(regs_context_t); 
+    pt_switchto->regs[0] = (uint64_t)ret_from_exception;     // ra        
+    pt_switchto->regs[1] = pcb->kernel_sp;  // sp
+```
+
+最后我们书写check_sleeping：
+
+```
+void check_sleeping(void)
+{
+    // TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
+    list_node_t *p, *tmp;
+    pcb_t* pcb;
+    uint64_t current_time = get_timer();
+    for(p=sleep_queue.next; p!=&sleep_queue; p=tmp){
+        tmp = p->next;
+        pcb = get_pcb_from_node(p);
+        if(pcb->wakeup_time <= current_time){
+            do_unblock(p);  // wake up process
+            add_node_to_q(p, &ready_queue);
+        }
+    }
+}
+```
+
+至此，Task3完成。
+
+### 任务 4：定时器中断、抢占式调度
 
