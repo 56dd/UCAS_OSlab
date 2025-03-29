@@ -97,7 +97,8 @@ static void init_pcb(void)
     // PCB for kernel
     uint64_t entry[NUM_MAX_TASK+1];   /* entry of all tasks */
     char needed_tasks[][16] = {
-        "print1", "print2", "lock1", "lock2", "sleep", "timer", "fly"
+        "print1", "print2", "lock1", "lock2", "sleep", "timer", "fly",
+        "fly1", "fly2", "fly3", "fly4", "fly5"
     };
     uint64_t entry_addr;
     int tasknum = 0;
@@ -178,17 +179,18 @@ int main(int app_info_loc, int app_info_size)
 
     // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
+    bios_set_timer(get_ticks()+TIMER_INTERVAL);
 
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
     while (1)
     {
         // If you do non-preemptive scheduling, it's used to surrender control
-        do_scheduler();
+        //do_scheduler();
 
         // If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
-        // enable_preempt();
-        // asm volatile("wfi");
+        enable_preempt();
+        asm volatile("wfi");
     }
 
     return 0;

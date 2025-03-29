@@ -10,7 +10,7 @@ int main(void)
     {
         sys_move_cursor(0, print_location);
         printf("> [TASK] This task is to test scheduler. (%d)", i);
-        sys_yield();
+        //sys_yield();
     }
 }
 
