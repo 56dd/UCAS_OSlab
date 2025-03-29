@@ -497,3 +497,73 @@ void check_sleeping(void)
 
 ### 任务 4：定时器中断、抢占式调度
 
+初始化中断使能，主要是SIE寄存器和sstatus寄存器的SIE位。
+
+对于setup_exception中，我们可以直接调用这个函数：
+
+```
+  addi    sp, sp, -8
+  sd      ra, 0(sp)
+  call    enable_interrupt
+  ld      ra, 0(sp)
+  addi    sp, sp, 8 
+```
+
+我们看看enable_interrupt的实现：（start_code已实现）
+
+```
+  li t0, SR_SIE
+  csrs CSR_SSTATUS, t0
+  jr ra
+```
+
+即是讲SR_SIE写入到sstatus寄存器中，即开启中断。
+
+然后在main中，我们使用开始中断：
+
+```
+    enable_preempt();
+    asm volatile("wfi");
+```
+
+这里我们看看enable_preempt的实现：
+
+```
+  not t0, x0
+  csrs CSR_SIE, t0
+  jr ra
+```
+
+即将SIE寄存器置为全1，至此彻底打开所有中断，然后asm volatile("wfi")表示，让处理器进入低功耗状态，等待中断发生，至此第一次从内核态的中断发生，往后发生中断都会将sstatus的SIE置为0，也就是内核态不会再发生中断了。
+
+```
+void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{e
+    bios_set_timer(get_ticks()+TIMER_INTERVAL); //下一次查询中断的时间
+    do_scheduler();
+}
+```
+
+然后我们设置如何处理定时器中断，其实只用设置下一次中断的时间，然后调用do_scheduler即可。
+
+同样我们也需要在main中设置第一次的中断：
+
+在while之前加入
+
+```
+bios_set_timer(get_ticks()+TIMER_INTERVAL);
+```
+
+即可。
+
+对于irq_table的初始化，由于我们目前只有定时器中断这一种中断，所以irq_table[IRQC_S_TIMER] = handle_irq_timer，其他用handle_other处理即可。
+
+#### 写在最后
+
+关于定时器中断这一块有一个值得思考的问题，那就是我在本次实验完成后，进行了一次上版测试，但是在首次的定时器下，print1的循环次数随时间增长会高于print2几十次，这是不合理的，因为按理每次定时器是一样长的，所以最多print次数相差1，我不理解这是为什么，但是由于此时定时过长，在每一个定时内几乎可以print几十次，所以我认为可能是因为定时过长的原因，一点微小的影响就会造成差异。于是我修改定时时间为之前的1%，此时print1的循环次数和print2的循环次数最多相差1次，这是合理的。于是我认为是不是定时越小越精准，我又将定时缩短到现在的10%，然而误差又明显了起来。这是一个值得思考的问题，我暂时还没有思考出为什么。
+
+### 任务 5：复杂调度算法
+
+
+
+
