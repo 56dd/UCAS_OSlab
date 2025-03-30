@@ -7,16 +7,16 @@
  * from: https://www.asciiart.eu/vehicles/airplanes
  */
 
-#define CYCLE_PER_MOVE 20
-#define START_POINT 40 //0~50
-#define FLY_OFF 12
+#define CYCLE_PER_MOVE 200
+#define START_POINT 10 //0~50
+#define FLY_OFF 0
 
 static char blank[] = {"                                                                               "};
 static char plane1[] = {"    \\\\   "};
 static char plane2[] = {" \\====== "};
 static char plane3[] = {"    //   "};
 
-int j=8 + FLY_OFF;
+int j=3 + FLY_OFF;
 volatile int cyc=0;
 
 int main(void)
@@ -25,7 +25,7 @@ int main(void)
     {
         int clk = sys_get_tick();
         for(int i=START_POINT; i<60;++i){
-            //sys_set_sche_workload(60-i);
+            sys_set_sche_workload(60-i);
             
             for(int t=0;t<CYCLE_PER_MOVE;++t)cyc++;
             sys_move_cursor(i, j + 0);
@@ -47,7 +47,7 @@ int main(void)
         printf("%s", blank);
 
         clk = sys_get_tick() - clk;
-        sys_move_cursor(0, 21+FLY_OFF);
+        sys_move_cursor(0, 16+FLY_OFF);
         printf("[fly2] cycles: %d, used time per round: %d tick.",cyc, clk);
     }
 }

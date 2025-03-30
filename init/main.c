@@ -107,7 +107,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for(int i= 0; i<7; i++){
+    for(int i= 7; i<12; i++){
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
         if(entry_addr!=0){
@@ -117,6 +117,18 @@ static void init_pcb(void)
             pcb[tasknum].status = TASK_READY;
             pcb[tasknum].cursor_x = 0;
             pcb[tasknum].cursor_y = 0;
+            //Task 5 
+            pcb[tasknum].fly_speed_absolute_b = 0;
+            pcb[tasknum].fly_speed_ralative_b = 0;
+            pcb[tasknum].if_fly = 0;
+            pcb[tasknum].position_last = 0;
+            pcb[tasknum].position_now = 0;
+            pcb[tasknum].fly_id = 0;
+            pcb[tasknum].time_last = 0;
+            pcb[tasknum].time_now = 0;
+            pcb[tasknum].time_slice = 20;
+            pcb[tasknum].time_slice_remain = 1;
+
             init_pcb_stack(pcb[tasknum].kernel_sp, pcb[tasknum].user_sp, entry_addr, &pcb[tasknum]);
             // add to ready queue
             add_node_to_q(&pcb[tasknum].list, &ready_queue);
@@ -143,6 +155,7 @@ static void init_syscall(void)
     syscall[SYSCALL_LOCK_INIT]      = (long (*)())do_mutex_lock_init;
     syscall[SYSCALL_LOCK_ACQ]       = (long (*)())do_mutex_lock_acquire;
     syscall[SYSCALL_LOCK_RELEASE]   = (long (*)())do_mutex_lock_release;
+    syscall[SYSCALL_SET_SCHE_WORKLOAD] = (long (*)())do_set_sche_workload;
 }
 /************************************************************/
 

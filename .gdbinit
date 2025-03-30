@@ -5,3 +5,8 @@ add-symbol-file build/lock1
 add-symbol-file build/lock2
 add-symbol-file build/timer
 add-symbol-file build/sleep
+add-symbol-file build/fly1
+add-symbol-file build/fly2
+add-symbol-file build/fly3
+add-symbol-file build/fly4
+add-symbol-file build/fly5

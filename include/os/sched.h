@@ -85,6 +85,17 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    /*Task 5*/
+    int position_now;
+    int position_last;
+    uint64_t time_now;
+    uint64_t time_last;
+    bool if_fly;
+    int fly_speed_absolute_b;//绝对速度的倒数（由于这里时间较大，而路程很小，用倒数更不容易出现精度误差）
+    int fly_speed_ralative_b;//
+    int fly_id;
+    int time_slice;
+    int time_slice_remain;
 } pcb_t;
 
 /* ready queue to run */
@@ -109,6 +120,12 @@ pcb_t * get_pcb_from_node(list_node_t* node);
 
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
+
+void do_set_sche_workload(int position);
+int FLY_SPEED_TABLE[16];
+int FLY_LENGTH_TABLE[16];
+int normalize_speed_table(int* speed_table, int table_p, int fly_id);
+int calculate_time_slice(int* D_table, int table_p, int fly_id);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
