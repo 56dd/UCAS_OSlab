@@ -68,9 +68,12 @@ typedef struct pcb
     // NOTE: this order must be preserved, which is defined in regs.h!!
     reg_t kernel_sp;
     reg_t user_sp;
+    ptr_t kernel_stack_base;
+    ptr_t user_stack_base;
 
     /* previous, next pointer */
     list_node_t list;
+    list_head wait_list;
 
     /* process id */
     pid_t pid;
@@ -128,7 +131,17 @@ int normalize_speed_table(int* speed_table, int table_p, int fly_id);
 int calculate_time_slice(int* D_table, int table_p, int fly_id);
 
 /************************************************************/
-/* Do not touch this comment. Reserved for future projects. */
+/* TODO [P3-TASK1] exec exit kill waitpid ps*/
+#ifdef S_CORE
+extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+#else
+extern pid_t do_exec(char *name, int argc, char *argv[]);
+#endif
+extern void do_exit(void);
+extern int do_kill(pid_t pid);
+extern int do_waitpid(pid_t pid);
+extern void do_process_show();
+extern pid_t do_getpid();
 /************************************************************/
 
 #endif

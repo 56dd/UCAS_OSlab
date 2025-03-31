@@ -53,3 +53,8 @@ void qemu_logging(char *str)
 {
     call_bios((long)BIOS_LOGGING, (long)str, IGNORE, IGNORE, IGNORE, IGNORE);
 }
+
+void send_ipi(const unsigned long *hart_mask)
+{
+    call_bios((long)BIOS_SEND_IPI, (long)hart_mask, IGNORE, IGNORE, IGNORE, IGNORE);
+}
