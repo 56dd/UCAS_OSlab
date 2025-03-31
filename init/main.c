@@ -107,7 +107,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for(int i= 7; i<12; i++){
+    for(int i= 0; i<12; i++){
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
         if(entry_addr!=0){
@@ -126,7 +126,7 @@ static void init_pcb(void)
             pcb[tasknum].fly_id = 0;
             pcb[tasknum].time_last = 0;
             pcb[tasknum].time_now = 0;
-            pcb[tasknum].time_slice = 20;
+            pcb[tasknum].time_slice = 1;
             pcb[tasknum].time_slice_remain = 1;
 
             init_pcb_stack(pcb[tasknum].kernel_sp, pcb[tasknum].user_sp, entry_addr, &pcb[tasknum]);

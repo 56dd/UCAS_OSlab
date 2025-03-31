@@ -39,7 +39,7 @@ void do_scheduler(void)
 
     pcb_t * prior_running;
     prior_running = current_running;
-
+// /*
     if(current_running->time_slice_remain>0){
         if_switch = 0;
     }
@@ -48,6 +48,7 @@ void do_scheduler(void)
         if_switch = 1;
     }
     if(if_switch == 1){
+// */
         if(current_running->pid != 0){
             // add to the ready queue
             if(current_running->status == TASK_RUNNING){
@@ -61,13 +62,14 @@ void do_scheduler(void)
 
         current_running = get_pcb_from_node(tmp);
         current_running->status = TASK_RUNNING;
+// /*
         current_running->time_slice_remain--;
     }
     else if(if_switch == 0)
     {
         current_running->time_slice_remain--;
     }
-
+// */
 
     printl("pid[%d]:is going to running\n",current_running->pid);
 
@@ -139,7 +141,7 @@ pcb_t * get_pcb_from_node(list_node_t* node){
     return &pid0_pcb;    // fail to find the task, return to kernel
 }
 
-
+/*
 void do_set_sche_workload(int position){
     if(current_running -> if_fly == 0){
         current_running -> if_fly = 1;
@@ -174,8 +176,8 @@ void do_set_sche_workload(int position){
         printl("pid[%d]:fly_speed_ralative_b:%d,time_slice:%d\n",current_running->pid,current_running->fly_speed_ralative_b,current_running->time_slice);
     }
 }
+*/
 
-/*
 void do_set_sche_workload(int position){
     if(current_running -> if_fly == 0){
         current_running -> if_fly = 1;
@@ -192,20 +194,20 @@ void do_set_sche_workload(int position){
             table_p ++;
         }
         if(table_p < fly_num)
-            current_running -> time_slice = 20;
+            current_running -> time_slice = 12;
         else
             current_running -> time_slice = calculate_time_slice(FLY_LENGTH_TABLE, table_p, current_running -> fly_id);
         printl("pid[%d]:time_slice[%d]",current_running->pid,current_running->time_slice);
     }
 }
-*/
+
 
 int calculate_time_slice(int* D_table, int table_p, int fly_id) {
     if (table_p <= 0 || fly_id < 0 || fly_id >= table_p) return -1;
 
     const int epsilon = 0;        // 等效浮点 ε=0.01 (scale=100)
     const int T_min = 1;          // 降低最小时间片至1
-    const int Total_T = 100;
+    const int Total_T = 60;
     const int scale = 100;        // 提高精度缩放因子
 
     // 1. 计算平均进度（允许向下取整误差）

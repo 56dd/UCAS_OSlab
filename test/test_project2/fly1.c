@@ -7,9 +7,9 @@
  * from: https://www.asciiart.eu/vehicles/airplanes
  */
 
-#define CYCLE_PER_MOVE 100
-#define START_POINT 10 //0~50
-#define FLY_OFF 0
+#define CYCLE_PER_MOVE 10000
+#define START_POINT 50 //0~50
+#define FLY_OFF 12
 
 static char blank[] = {"                                                                               "};
 static char plane1[] = {"    \\\\   "};
