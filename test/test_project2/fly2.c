@@ -9,7 +9,7 @@
 
 #define CYCLE_PER_MOVE 20000
 #define START_POINT 40 //0~50
-#define FLY_OFF 12
+#define FLY_OFF 0
 
 static char blank[] = {"                                                                               "};
 static char plane1[] = {"    \\\\   "};

@@ -107,7 +107,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for(int i= 0; i<12; i++){
+    for(int i= 0; i<7; i++){
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
         if(entry_addr!=0){
