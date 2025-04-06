@@ -91,14 +91,12 @@ typedef struct pcb
     /*Task 5*/
     int position_now;
     int position_last;
-    uint64_t time_now;
-    uint64_t time_last;
     bool if_fly;
-    int fly_speed_absolute_b;//绝对速度的倒数（由于这里时间较大，而路程很小，用倒数更不容易出现精度误差）
-    int fly_speed_ralative_b;//
     int fly_id;
     int time_slice;
     int time_slice_remain;
+
+    
 } pcb_t;
 
 /* ready queue to run */
@@ -113,7 +111,7 @@ extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
-extern const ptr_t pid0_stack;
+extern const ptr_t pid0_stack; 
 
 extern void switch_to(pcb_t *prev, pcb_t *next);
 void do_scheduler(void);
@@ -142,6 +140,14 @@ extern int do_kill(pid_t pid);
 extern int do_waitpid(pid_t pid);
 extern void do_process_show();
 extern pid_t do_getpid();
+
+extern void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
+    pcb_t *pcb, int argc, char* argv[]);    
+int search_free_pcb(); 
+
+void pcb_release(pcb_t* p);
+void free_block_list(list_node_t* head);
+void release_all_lock(pid_t pid);
 /************************************************************/
 
 #endif

@@ -8,7 +8,7 @@
  */
 
 #define CYCLE_PER_MOVE 10000
-#define START_POINT 50 //0~50
+#define START_POINT 10 //0~50
 #define FLY_OFF 0
 
 static char blank[] = {"                                                                               "};

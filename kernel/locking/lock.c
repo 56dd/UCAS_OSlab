@@ -3,9 +3,7 @@
 #include <os/list.h>
 #include <atomic.h>
 
-mutex_lock_t mlocks[LOCK_NUM];
 int lock_used_num = 0;
-
 void init_locks(void)
 {
     /* TODO: [p2-task2] initialize mlocks */
@@ -59,8 +57,10 @@ int do_mutex_lock_init(int key)
 void do_mutex_lock_acquire(int mlock_idx)
 {
     /* TODO: [p2-task2] acquire mutex lock */
-    if(spin_lock_try_acquire(&mlocks[mlock_idx].lock))
+    if(spin_lock_try_acquire(&mlocks[mlock_idx].lock)){
+        mlocks[mlock_idx].pid = current_running->pid;
         return;
+    }
     // 获取锁失败
     do_block(&current_running->list, &mlocks[mlock_idx].block_queue);
     pcb_t *prior_running = current_running;
@@ -76,8 +76,12 @@ void do_mutex_lock_release(int mlock_idx)
     head = &mlocks[mlock_idx].block_queue;
     p = head->next;
     // 阻塞队列为空，释放锁
-    if(p==head)
+    if(p==head){
+        mlocks[mlock_idx].pid = -1;
         spin_lock_release(&mlocks[mlock_idx].lock);
-    else
+    }
+    else{
+        mlocks[mlock_idx].pid = get_pcb_from_node(p)->pid;
         do_unblock(p);
+    }
 }

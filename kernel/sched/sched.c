@@ -2,6 +2,9 @@
 #include <os/lock.h>
 #include <os/sched.h>
 #include <os/time.h>
+#include <os/loader.h>
+#include <os/task.h>
+#include <os/string.h>
 #include <os/mm.h>
 #include <screen.h>
 #include <printk.h>
@@ -34,12 +37,9 @@ void do_scheduler(void)
     /************************************************************/
 
     // TODO: [p2-task1] Modify the current_running pointer.
-
-    printl("Scheduler start \n");
-
     pcb_t * prior_running;
     prior_running = current_running;
-// /*
+/*
     if(current_running->time_slice_remain>0){
         if_switch = 0;
     }
@@ -48,34 +48,31 @@ void do_scheduler(void)
         if_switch = 1;
     }
     if(if_switch == 1){
-// */
-        if(current_running->pid != 0){
-            // add to the ready queue
-            if(current_running->status == TASK_RUNNING){
-                current_running->status = TASK_READY;
-                add_node_to_q(&current_running->list, &ready_queue);
-            }    
-            else if(current_running->status == TASK_BLOCKED)
-                add_node_to_q(&current_running->list, &sleep_queue);
-        }
-        list_node_t* tmp = seek_ready_node();
-
-        current_running = get_pcb_from_node(tmp);
-        current_running->status = TASK_RUNNING;
-// /*
+*/
+    if(current_running->pid != 0){
+        // add to the ready queue
+        if(current_running->status == TASK_RUNNING){
+            current_running->status = TASK_READY;
+            add_node_to_q(&current_running->list, &ready_queue);
+        }    
+        else if(current_running->status == TASK_BLOCKED)
+            add_node_to_q(&current_running->list, &sleep_queue);
+    }
+    list_node_t* tmp = seek_ready_node();
+    current_running = get_pcb_from_node(tmp);
+    current_running->status = TASK_RUNNING;
+/*
         current_running->time_slice_remain--;
     }
     else if(if_switch == 0)
     {
         current_running->time_slice_remain--;
     }
-// */
+*/
 
-    printl("pid[%d]:is going to running\n",current_running->pid);
 
     // TODO: [p2-task1] switch_to current_running
     switch_to(prior_running->kernel_sp, current_running->kernel_sp);
-    printl("[%d] switch_to success!!!\n", current_running->pid);
     return;
 
 }
@@ -116,6 +113,40 @@ list_node_t* seek_ready_node(){
     return p;
 }
 
+int search_free_pcb(){  // 查找可用pcb并返回下标，若无则返回-1
+    for(int i=0; i<NUM_MAX_TASK; i++){
+        if(pcb[i].status==TASK_EXITED)
+            return i;
+    }
+    return -1;
+}
+
+void pcb_release(pcb_t* p){
+    // 栈指针复位不能在此处进行，因为后续上下文切换还需要使用栈
+    // // 将栈指针复位
+
+    // 将之从原队列删除
+    delete_node_from_q(&(p->list));
+    // 释放等待队列的所有进程
+    free_block_list(&(p->wait_list));
+    // 释放持有的所有锁
+    release_all_lock(p->pid);
+}
+void release_all_lock(pid_t pid){
+    for(int i=0; i<LOCK_NUM; i++){
+        if(mlocks[i].pid == pid )
+            do_mutex_lock_release(i);
+    }
+}
+
+
+void free_block_list(list_node_t* head){    //释放被阻塞的进程
+    list_node_t* p, *next;
+    for(p=head->next; p!= head; p= next){
+        next = p->next;
+        do_unblock(p);
+    }
+}
 void add_node_to_q(list_node_t* node,list_head *head){
     list_node_t *p = head->prev; // tail ptr
     p->next = node;
@@ -140,6 +171,96 @@ pcb_t * get_pcb_from_node(list_node_t* node){
     }
     return &pid0_pcb;    // fail to find the task, return to kernel
 }
+
+pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功返回0
+    char **argv_ptr;
+    int index = search_free_pcb();
+    if(index==-1)   // 进程数已满，返回
+        return 0;
+    uint64_t entry_point;
+    entry_point=load_task_img(name);
+    if(entry_point==0)   // 找不到相应task，返回
+        return 0;
+    // 创建PCB
+    else{
+        pcb[index].kernel_sp = (reg_t)(allocKernelPage(1)+PAGE_SIZE);    //分配一页
+        pcb[index].user_sp = (reg_t)(allocUserPage(1)+PAGE_SIZE);
+        uint64_t user_sp = pcb[index].user_sp;
+        pcb[index].pid = task_num + 1; // pid 0 is for kernel
+        pcb[index].status = TASK_READY;
+        pcb[index].cursor_x = 0;
+        pcb[index].cursor_y = 0;
+        // 参数搬到用户栈
+        user_sp -= sizeof(char*) * argc;
+        argv_ptr = (char **)user_sp;
+        
+        for(int i=argc-1; i>=0; i--){
+            int len = strlen(argv[i])+1;    //要拷贝'\0'
+            user_sp -=len;
+            argv_ptr[i] = (char*)user_sp;
+            strcpy((char*)user_sp, argv[i]);
+        }
+        pcb[index].user_sp = (reg_t)ROUNDDOWN(user_sp, 128);    // 栈指针128字节对齐
+        //初始化栈，改变入口地址，存储参数
+        init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, entry_point, &pcb[index], argc, argv_ptr);
+        // 加入ready队列
+        add_node_to_q(&pcb[index].list, &ready_queue);
+        // 进程数加一
+        task_num++;
+    }
+    return pcb[index].pid;  //返回pid值
+}
+
+void do_exit(void){
+    current_running->status = TASK_EXITED;
+    pcb_release(current_running);
+    do_scheduler();
+}
+
+int do_kill(pid_t pid){
+    for(int i=0; i<NUM_MAX_TASK; i++){
+        if(pcb[i].status!=TASK_EXITED && pcb[i].pid==pid){
+            // 修改进程状态
+            pcb[i].status = TASK_EXITED;
+            pcb_release(&pcb[i]);
+            // 返回1，表示找到对应进程且将其kill
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int do_waitpid(pid_t pid){
+    for(int i=0; i<NUM_MAX_TASK; i++){
+        if(pcb[i].pid == pid){
+            if(pcb[i].status != TASK_EXITED){
+                do_block(&(current_running->list), &(pcb[i].wait_list));
+                return pid;
+            }
+        }
+    }
+    return 0;
+}
+
+void do_process_show(){
+    int i;
+    static char *stat_str[3]={
+        "BLOCKED","RUNNING","READY"
+    };
+    screen_write("[Process table]:\n");
+    for(i=0; i<NUM_MAX_TASK; i++){
+        if(pcb[i].status==TASK_EXITED)
+            continue;
+        else
+            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, stat_str[pcb[i].status]);
+    }
+}
+
+pid_t do_getpid(){
+    return current_running->pid;
+}
+
+
 
 /*
 void do_set_sche_workload(int position){
