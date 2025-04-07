@@ -55,8 +55,6 @@ void do_scheduler(void)
             current_running->status = TASK_READY;
             add_node_to_q(&current_running->list, &ready_queue);
         }    
-        else if(current_running->status == TASK_BLOCKED)
-            add_node_to_q(&current_running->list, &sleep_queue);
     }
     list_node_t* tmp = seek_ready_node();
     current_running = get_pcb_from_node(tmp);
@@ -69,7 +67,7 @@ void do_scheduler(void)
         current_running->time_slice_remain--;
     }
 */
-
+    printl("[scheduler] switch to %d\n",current_running->pid);
 
     // TODO: [p2-task1] switch_to current_running
     switch_to(prior_running->kernel_sp, current_running->kernel_sp);
@@ -82,7 +80,7 @@ void do_sleep(uint32_t sleep_time)
     // TODO: [p2-task3] sleep(seconds)
     // NOTE: you can assume: 1 second = 1 `timebase` ticks
     // 1. block the current_running
-    current_running->status = TASK_BLOCKED;
+    do_block(&current_running->list, &sleep_queue);
     // 2. set the wake up time for the blocked task
     current_running->wakeup_time = get_timer()+sleep_time;
     // 3. reschedule because the current_running is blocked.
@@ -122,11 +120,10 @@ int search_free_pcb(){  // 查找可用pcb并返回下标，若无则返回-1
 }
 
 void pcb_release(pcb_t* p){
-    // 栈指针复位不能在此处进行，因为后续上下文切换还需要使用栈
-    // // 将栈指针复位
 
     // 将之从原队列删除
-    delete_node_from_q(&(p->list));
+    if(current_running->pid != p->pid)
+        delete_node_from_q(&(p->list));
     // 释放等待队列的所有进程
     free_block_list(&(p->wait_list));
     // 释放持有的所有锁
@@ -190,6 +187,8 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         pcb[index].status = TASK_READY;
         pcb[index].cursor_x = 0;
         pcb[index].cursor_y = 0;
+        pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
+        pcb[index].list.prev = pcb[index].list.next = NULL;
         // 参数搬到用户栈
         user_sp -= sizeof(char*) * argc;
         argv_ptr = (char **)user_sp;
@@ -235,6 +234,7 @@ int do_waitpid(pid_t pid){
         if(pcb[i].pid == pid){
             if(pcb[i].status != TASK_EXITED){
                 do_block(&(current_running->list), &(pcb[i].wait_list));
+                do_scheduler();
                 return pid;
             }
         }

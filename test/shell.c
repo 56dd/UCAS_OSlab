@@ -96,10 +96,10 @@ int main(void)
             int do_wait;
             do_wait = strcmp(argv[argc-1], "&"); 
             int exec_argc;
-            exec_argc = argc - 2 - do_wait;
-            char exec_argv[exec_argc][MAX_ARG_LEN];
-            for(int i=2;i<argc - do_wait;i++){
-                strcpy(exec_argv[i-2], argv[i]);
+            exec_argc = argc - 1 - (do_wait?0:1);
+            char* exec_argv[MAX_ARG_LEN];
+            for(int i=1;i<argc - (do_wait?0:1);i++){
+                exec_argv[i-1]=argv[i];
             }
             pid_t pid = sys_exec(argv[1], exec_argc, exec_argv);
             if(pid==0){

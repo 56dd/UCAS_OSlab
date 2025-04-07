@@ -60,7 +60,6 @@ void screen_write_ch(char ch)
 
     else
     {
-        printl("now cursor_x = %d, cursor_y = %d,ch = %c\n",current_running->cursor_x,current_running->cursor_y,ch);
         new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ch;
         if (++current_running->cursor_x >= SCREEN_WIDTH)
         {
