@@ -253,10 +253,7 @@ void do_condition_broadcast(int cond_idx){
 
 #### mailbox
 
-
+有关mailbox的代码也值得思考，但并不是一个十分值得大花时间写的部分，所以直接参照相关代码就可以了。
 
 ### 任务3 开启双核并行运行
-
-
-
 

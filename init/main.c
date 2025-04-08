@@ -139,6 +139,10 @@ static void init_syscall(void)
     syscall[SYSCALL_COND_SIGNAL]     =  (long (*)())do_condition_signal;
     syscall[SYSCALL_COND_BROADCAST]  =  (long (*)())do_condition_broadcast;
     syscall[SYSCALL_COND_DESTROY]    =  (long (*)())do_condition_destroy;
+    syscall[SYSCALL_MBOX_OPEN]       =  (long (*)())do_mbox_open;
+    syscall[SYSCALL_MBOX_CLOSE]      =  (long (*)())do_mbox_close;
+    syscall[SYSCALL_MBOX_SEND]       =  (long (*)())do_mbox_send;
+    syscall[SYSCALL_MBOX_RECV]       =  (long (*)())do_mbox_recv;
 }
 /************************************************************/
 
@@ -168,6 +172,10 @@ int main(int app_info_loc, int app_info_size)
     // Init conditions (@v@)
     init_conditions();
     printk("> [INIT] Condition mechanism initialization succeeded.\n");
+
+    // Init mailbox *v*
+    init_mbox();
+    printk("> [INIT] Mailbox mechanism initialization succeeded.\n");
 
     // Init interrupt (^_^)
     init_exception();

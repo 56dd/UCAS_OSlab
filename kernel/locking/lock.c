@@ -1,6 +1,7 @@
 #include <os/lock.h>
 #include <os/sched.h>
 #include <os/list.h>
+#include <os/string.h>
 #include <atomic.h>
 #include <printk.h>
 
@@ -174,5 +175,89 @@ void do_condition_destroy(int cond_idx){
 }
 
 
-
-
+//--------------------------------------------Mailbox Interface------------------------------------
+void init_mbox(){
+    for(int i=0; i<MBOX_NUM; i++){
+        mbox[i].name[0]='\0'; 
+        mbox[i].wcur = 0;
+        mbox[i].rcur = 0;
+        mbox[i].user_num = 0;
+        mbox[i].wait_mbox_full.prev = mbox[i].wait_mbox_full.next = &mbox[i].wait_mbox_full; 
+        mbox[i].wait_mbox_empty.prev = mbox[i].wait_mbox_empty.next = &mbox[i].wait_mbox_empty; 
+    }    
+}
+int do_mbox_open(char *name){
+    // 寻找对应name是否已经有对应邮箱
+    for(int i=0; i<MBOX_NUM; i++){
+        if(strcmp(mbox[i].name, name)==0){ // 找到匹配条件变量
+            mbox[i].user_num ++;
+            return i;
+        }
+    }
+    // 寻找空闲邮箱变量
+    for(int i=0; i<MBOX_NUM; i++){
+        if(mbox[i].name[0]=='\0'){
+            strcpy(mbox[i].name, name);
+            mbox[i].user_num ++; 
+            return i;
+        }
+    }
+    return -1;  // 未找到，返回-1    
+}
+void do_mbox_close(int mbox_idx){
+    mbox[mbox_idx].user_num--;
+    if(mbox[mbox_idx].user_num==0){
+        mbox[mbox_idx].name[0] = '\0';
+        mbox[mbox_idx].wcur = 0;
+        mbox[mbox_idx].rcur = 0;
+    }
+}
+#define MODE_W 0
+#define MODE_R 1
+void myMemcpy(char *dest, char *src, int vcur, int len, int arr_size, int mode){
+    int pcur;   //cur的实际值
+    // 写操作中dest是循环数组
+    if(mode==MODE_W){
+        for(int i=0; i<len; i++){
+            pcur = (i + vcur) % arr_size;
+            dest[pcur] = src[i];
+        }
+    }
+    // 读操作中src是循环数组
+    else{
+        for(int i=0; i<len; i++){
+            pcur = (i + vcur) % arr_size;
+            dest[i] = src[pcur];
+        }
+    }
+}
+int do_mbox_send(int mbox_idx, void * msg, int msg_length){
+    int tmp_wcur;
+    int cnt=0;
+    // 邮箱已满，阻塞
+    while((tmp_wcur= mbox[mbox_idx].wcur + msg_length)>MAX_MBOX_LENGTH + mbox[mbox_idx].rcur){
+        do_block(&current_running->list, &mbox[mbox_idx].wait_mbox_full);
+        do_scheduler();
+        cnt++;
+    }
+    // 进行数据拷贝
+    myMemcpy(mbox[mbox_idx].msg, msg, mbox[mbox_idx].wcur, msg_length, MAX_MBOX_LENGTH, MODE_W);
+    mbox[mbox_idx].wcur = tmp_wcur;
+    free_block_list(&mbox[mbox_idx].wait_mbox_empty);   // 唤醒所有因邮箱空而阻塞的进程
+    return cnt;
+}
+int do_mbox_recv(int mbox_idx, void * msg, int msg_length){
+    int tmp_rcur;
+    int cnt=0;
+    // 邮箱读空，阻塞
+    while((tmp_rcur = mbox[mbox_idx].rcur + msg_length) > mbox[mbox_idx].wcur){
+        do_block(&current_running->list, &mbox[mbox_idx].wait_mbox_empty);
+        do_scheduler();
+        cnt++;
+    }
+    // 进行数据拷贝
+    myMemcpy(msg, mbox[mbox_idx].msg, mbox[mbox_idx].rcur, msg_length, MAX_MBOX_LENGTH, MODE_R); // 注意rcur指向的是下一个空位
+    mbox[mbox_idx].rcur = tmp_rcur;
+    free_block_list(&mbox[mbox_idx].wait_mbox_full);   // 唤醒所有因邮箱满而阻塞的进程
+    return cnt;
+}

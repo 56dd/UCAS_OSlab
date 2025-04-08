@@ -108,6 +108,8 @@ void do_unblock(list_node_t *pcb_node)
 list_node_t* seek_ready_node(){
     list_node_t *p = ready_queue.next;
     // delete p from queue
+    if(p == &ready_queue)
+        return &pid0_pcb.list;
     delete_node_from_q(p);
     return p;
 }

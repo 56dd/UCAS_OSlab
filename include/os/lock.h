@@ -120,14 +120,23 @@ void do_semaphore_down(int sema_idx);
 void do_semaphore_destroy(int sema_idx);
 
 #define MAX_MBOX_LENGTH (64)
+#define NAME_LEN 20
 
 typedef struct mailbox
 {
     // TODO [P3-TASK2 mailbox]
+    char name[NAME_LEN];
+    char msg[MAX_MBOX_LENGTH+1];
+    int wcur;    // 写指针，指向首个空闲块
+    int rcur;   // 读指针，记录下一个要读的位置
+    int user_num;    // 当前使用数
+    list_head wait_mbox_full;   // 由于邮箱满被阻塞的进程
+    list_head wait_mbox_empty;  // 由于邮箱空被阻塞的进程
     
 } mailbox_t;
 
 #define MBOX_NUM 16
+mailbox_t mbox[MBOX_NUM];
 void init_mbox();
 int do_mbox_open(char *name);
 void do_mbox_close(int mbox_idx);
