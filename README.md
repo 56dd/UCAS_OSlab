@@ -162,6 +162,72 @@ int do_waitpid(pid_t pid){
 
 ### 任务2 实现同步原语：barriers、condition variables
 
+#### barriers
+
+定义barrier的数据结构：
+
+```
+typedef struct barrier
+{
+    int goal;
+    int wait_num;
+    list_head wait_list;
+    int key;
+    use_status_t usage;
+} barrier_t;
+```
+
+```
+void init_barriers(void){
+    for(int i=0; i <BARRIER_NUM; i++){
+        barrs[i].goal=0;
+        barrs[i].wait_num=0;
+        barrs[i].usage=UNUSED;
+        barrs[i].wait_list.prev = barrs[i].wait_list.next = &barrs[i].wait_list; 
+    }
+}
+int do_barrier_init(int key, int goal){
+    // 寻找对应key是否已经有对应屏障变量
+    for(int i=0; i<BARRIER_NUM; i++){
+        if(barrs[i].usage==USING && barrs[i].key==key){ // 找到匹配屏障变量
+            barrs[i].goal = goal;
+            return i;
+        }
+    }
+    // 寻找空闲屏障变量
+    for(int i=0; i<BARRIER_NUM; i++){
+        if(barrs[i].usage==UNUSED){ // 找到空闲屏障变量
+            barrs[i].key = key;
+            barrs[i].goal = goal;
+            return i;
+        }
+    }
+    return -1;  // 未找到，返回-1
+}
+void do_barrier_wait(int bar_idx){
+    barrs[bar_idx].wait_num++;
+    if(barrs[bar_idx].goal != barrs[bar_idx].wait_num){
+        do_block(&current_running->list, &barrs[bar_idx].wait_list);
+        do_scheduler();
+    }
+    else{
+        free_block_list(&barrs[bar_idx].wait_list);
+        barrs[bar_idx].wait_num=0;
+    }
+}
+void do_barrier_destroy(int bar_idx){
+    free_block_list(&barrs[bar_idx].wait_list);
+    barrs[bar_idx].key=0;
+    barrs[bar_idx].goal=0;
+    barrs[bar_idx].usage=UNUSED;
+}
+
+```
+
+有关barrier的init，wait和destroy函数的实现，请参考代码，并没有太多需要注释的地方。然后需要在main函数中init初始化barrier。
+
+
+
 ### 任务3 开启双核并行运行
 
 

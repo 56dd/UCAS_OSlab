@@ -111,8 +111,6 @@ void do_barrier_wait(int bar_idx){
     barrs[bar_idx].wait_num++;
     if(barrs[bar_idx].goal != barrs[bar_idx].wait_num){
         do_block(&current_running->list, &barrs[bar_idx].wait_list);
-        printl("barrier wait,wait_num:%d,current running:%d\n",barrs[bar_idx].wait_num,current_running->pid);
-        do_process_show_l();
         do_scheduler();
     }
     else{
