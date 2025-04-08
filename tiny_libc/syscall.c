@@ -189,26 +189,31 @@ void sys_barrier_destroy(int bar_idx)
 int sys_condition_init(int key)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_condition_init */
+    return invoke_syscall(SYSCALL_COND_INIT, key, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_condition_wait(int cond_idx, int mutex_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_condition_wait */
+    invoke_syscall(SYSCALL_COND_WAIT, cond_idx, mutex_idx, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_condition_signal(int cond_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_condition_signal */
+    invoke_syscall(SYSCALL_COND_SIGNAL, cond_idx, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_condition_broadcast(int cond_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_condition_broadcast */
+    invoke_syscall(SYSCALL_COND_BROADCAST, cond_idx, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_condition_destroy(int cond_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_condition_destroy */
+    invoke_syscall(SYSCALL_COND_DESTROY, cond_idx, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_semaphore_init(int key, int init)

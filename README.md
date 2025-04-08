@@ -226,6 +226,33 @@ void do_barrier_destroy(int bar_idx){
 
 有关barrier的init，wait和destroy函数的实现，请参考代码，并没有太多需要注释的地方。然后需要在main函数中init初始化barrier。
 
+#### condition
+
+关于条件变量的实现，也比较简单，有关init和destroy函数的实现，请参考代码，并没有太多需要注释的地方。关于wait，我们需要在阻塞当前线程的同时，释放线程所持有的锁。signal表示唤醒一个等待该条件变量的线程，broadcast表示唤醒所有等待该条件变量的线程。
+
+```
+void do_condition_wait(int cond_idx, int mutex_idx){ 
+    // 阻塞在条件变量的等待队列
+    current_running->status = TASK_BLOCKED;
+    add_node_to_q(&current_running->list, &conds[cond_idx].wait_list);
+    do_mutex_lock_release(mutex_idx);   
+    do_scheduler();
+
+}
+void do_condition_signal(int cond_idx){
+    list_node_t* head, *p;
+    head = & conds[cond_idx].wait_list;
+    p = head->next;
+    if(p!=head)
+        do_unblock(p);
+}
+void do_condition_broadcast(int cond_idx){
+    free_block_list(&conds[cond_idx].wait_list);
+}
+```
+
+#### mailbox
+
 
 
 ### 任务3 开启双核并行运行

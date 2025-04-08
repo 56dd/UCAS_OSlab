@@ -91,9 +91,13 @@ void do_barrier_destroy(int bar_idx);
 typedef struct condition
 {
     // TODO [P3-TASK2 condition]
+    list_head wait_list;
+    int key;
+    use_status_t usage; // 记录是否被使用
 } condition_t;
 
 #define CONDITION_NUM 16
+condition_t conds[CONDITION_NUM];
 
 void init_conditions(void);
 int do_condition_init(int key);

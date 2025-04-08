@@ -125,3 +125,54 @@ void do_barrier_destroy(int bar_idx){
     barrs[bar_idx].usage=UNUSED;
 }
 
+//--------------------------------------------Condition Interface------------------------------------
+void init_conditions(void){
+    for(int i=0; i<CONDITION_NUM; i++){
+        conds[i].key = 0; 
+        conds[i].usage = UNUSED;
+        conds[i].wait_list.prev = conds[i].wait_list.next = &conds[i].wait_list; // 初始化等待队列
+    }
+}
+int do_condition_init(int key){ 
+    // 寻找对应key是否已经有对应条件变量
+    for(int i=0; i<CONDITION_NUM; i++){
+        if(conds[i].usage==USING && conds[i].key==key){ // 找到匹配条件变量
+            return i;
+        }
+    }
+    // 寻找空闲屏障变量
+    for(int i=0; i<CONDITION_NUM; i++){
+        if(conds[i].usage == UNUSED){ // 找到空闲条件变量
+            conds[i].key = key;
+            return i;
+        }
+    }
+    return -1;  // 未找到，返回-1
+}
+void do_condition_wait(int cond_idx, int mutex_idx){ 
+    // 阻塞在条件变量的等待队列
+    current_running->status = TASK_BLOCKED;
+    add_node_to_q(&current_running->list, &conds[cond_idx].wait_list);
+    do_mutex_lock_release(mutex_idx);   
+    do_scheduler();
+
+}
+void do_condition_signal(int cond_idx){
+    list_node_t* head, *p;
+    head = & conds[cond_idx].wait_list;
+    p = head->next;
+    if(p!=head)
+        do_unblock(p);
+}
+void do_condition_broadcast(int cond_idx){
+    free_block_list(&conds[cond_idx].wait_list);
+}
+void do_condition_destroy(int cond_idx){
+    do_condition_broadcast(cond_idx);
+    conds[cond_idx].key = 0;    
+    conds[cond_idx].usage = UNUSED;    // 置为空闲
+}
+
+
+
+
