@@ -68,6 +68,7 @@ void do_scheduler(void)
     }
 */
     printl("[scheduler] switch to %d\n",current_running->pid);
+    do_process_show_l();
 
     // TODO: [p2-task1] switch_to current_running
     switch_to(prior_running->kernel_sp, current_running->kernel_sp);
@@ -255,6 +256,19 @@ void do_process_show(){
             printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, stat_str[pcb[i].status]);
     }
 }
+
+void do_process_show_l(){
+    int i;
+    static char *stat_str[3]={
+        "BLOCKED","RUNNING","READY"
+    };
+    for(i=0; i<NUM_MAX_TASK; i++){
+        if(pcb[i].status==TASK_EXITED)
+            continue;
+        else
+            printl("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, stat_str[pcb[i].status]);
+    }
+}//debug用
 
 pid_t do_getpid(){
     return current_running->pid;

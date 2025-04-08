@@ -160,6 +160,10 @@ int do_waitpid(pid_t pid){
 
 至此，Task1完成。
 
-### Task2 实现同步原语：barriers、condition variables
+### 任务2 实现同步原语：barriers、condition variables
+
+### 任务3 开启双核并行运行
+
+
 
 

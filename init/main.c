@@ -131,6 +131,9 @@ static void init_syscall(void)
     syscall[SYSCALL_READCH]         = (long (*)())bios_getchar;
     syscall[SYSCALL_CLEAR]          = (long (*)())screen_clear;
     syscall[SYSCALL_WRITECH]          = (long (*)())screen_write_ch;
+    syscall[SYSCALL_BARR_INIT]        =  (long (*)())do_barrier_init;
+    syscall[SYSCALL_BARR_WAIT]        =  (long (*)())do_barrier_wait;
+    syscall[SYSCALL_BARR_DESTROY]     =  (long (*)())do_barrier_destroy;
 }
 /************************************************************/
 
@@ -152,6 +155,10 @@ int main(int app_info_loc, int app_info_size)
     // Init lock mechanism o(´^｀)o
     init_locks();
     printk("> [INIT] Lock mechanism initialization succeeded.\n");
+
+    // Init barriers (´・ω・)
+    init_barriers();
+    printk("> [INIT] Barrier mechanism initialization succeeded.\n");
 
     // Init interrupt (^_^)
     init_exception();

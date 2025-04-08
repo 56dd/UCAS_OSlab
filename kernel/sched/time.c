@@ -42,7 +42,6 @@ void check_sleeping(void)
         pcb = get_pcb_from_node(p);
         if(pcb->wakeup_time <= current_time){
             do_unblock(p);  // wake up process
-            add_node_to_q(p, &ready_queue);
         }
     }
 }

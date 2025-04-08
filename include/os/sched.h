@@ -139,6 +139,7 @@ extern void do_exit(void);
 extern int do_kill(pid_t pid);
 extern int do_waitpid(pid_t pid);
 extern void do_process_show();
+extern void do_process_show_l();//debug用，打印log
 extern pid_t do_getpid();
 
 extern void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,

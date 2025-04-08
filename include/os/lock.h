@@ -37,6 +37,11 @@ typedef enum {
     LOCKED,
 } lock_status_t;
 
+typedef enum {
+    UNUSED,
+    USING,
+} use_status_t;
+
 typedef struct spin_lock
 {
     volatile lock_status_t status;
@@ -68,9 +73,15 @@ void do_mutex_lock_release(int mlock_idx);
 typedef struct barrier
 {
     // TODO [P3-TASK2 barrier]
+    int goal;
+    int wait_num;
+    list_head wait_list;
+    int key;
+    use_status_t usage;
 } barrier_t;
 
 #define BARRIER_NUM 16
+barrier_t barrs[BARRIER_NUM];
 
 void init_barriers(void);
 int do_barrier_init(int key, int goal);

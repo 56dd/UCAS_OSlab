@@ -66,7 +66,7 @@ int main(void)
             if (ins_pos > 0)
             {
                 sys_write_ch(tmp);
-                sys_reflush();
+                sys_reflush();               
                 buff[--ins_pos] = '\0';
             }
         }

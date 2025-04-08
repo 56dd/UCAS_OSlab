@@ -171,16 +171,19 @@ void  sys_clear(void)
 int  sys_barrier_init(int key, int goal)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_barrier_init */
+    return invoke_syscall(SYSCALL_BARR_INIT, key, goal, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_barrier_wait(int bar_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_barrie_wait */
+    invoke_syscall(SYSCALL_BARR_WAIT, bar_idx, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_barrier_destroy(int bar_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_barrie_destory */
+    invoke_syscall(SYSCALL_BARR_DESTROY, bar_idx, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_condition_init(int key)
