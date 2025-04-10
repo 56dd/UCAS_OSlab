@@ -7,6 +7,8 @@ ENTRY(setup_exception)
   la t0, exception_handler_entry
   csrw stvec, t0
 
+  csrw sip, zero
+
   /* TODO: [p2-task4] enable interrupts globally */
   addi    sp, sp, -8
   sd      ra, 0(sp)

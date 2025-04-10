@@ -4,6 +4,7 @@
 #include <os/sched.h>
 #include <os/irq.h>
 #include <os/kernel.h>
+#include <os/smp.h>
 
 #define SCREEN_WIDTH    80
 #define SCREEN_HEIGHT   50
@@ -40,32 +41,32 @@ void screen_write_ch(char ch)
 {
     if (ch == '\n')
     {
-        current_running->cursor_x = 0;
-        if (current_running->cursor_y < SCREEN_HEIGHT)
-            current_running->cursor_y++;
+        current_running[cpu_id]->cursor_x = 0;
+        if (current_running[cpu_id]->cursor_y < SCREEN_HEIGHT)
+            current_running[cpu_id]->cursor_y++;
     }
     else if (ch == '\b' || ch == '\177')
     {	
         // TODO: [P3] support backspace here
-        if(current_running->cursor_x !=0){
-            current_running->cursor_x --;
-            new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ' ';
+        if(current_running[cpu_id]->cursor_x !=0){
+            current_running[cpu_id]->cursor_x --;
+            new_screen[SCREEN_LOC(current_running[cpu_id]->cursor_x, current_running[cpu_id]->cursor_y)] = ' ';
         }
         else{
-            current_running->cursor_y = current_running->cursor_y - 1;
-            current_running->cursor_x = SCREEN_WIDTH - 1;
-            new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ' ';
+            current_running[cpu_id]->cursor_y = current_running[cpu_id]->cursor_y - 1;
+            current_running[cpu_id]->cursor_x = SCREEN_WIDTH - 1;
+            new_screen[SCREEN_LOC(current_running[cpu_id]->cursor_x, current_running[cpu_id]->cursor_y)] = ' ';
         }
     }
 
     else
     {
-        new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ch;
-        if (++current_running->cursor_x >= SCREEN_WIDTH)
+        new_screen[SCREEN_LOC(current_running[cpu_id]->cursor_x, current_running[cpu_id]->cursor_y)] = ch;
+        if (++current_running[cpu_id]->cursor_x >= SCREEN_WIDTH)
         {
-            current_running->cursor_x = 0;
-            if (current_running->cursor_y < SCREEN_HEIGHT)
-                current_running->cursor_y++;
+            current_running[cpu_id]->cursor_x = 0;
+            if (current_running[cpu_id]->cursor_y < SCREEN_HEIGHT)
+                current_running[cpu_id]->cursor_y++;
         }
     }
 }
@@ -91,8 +92,8 @@ void screen_clear(void)
 			old_screen[SCREEN_LOC(j, i)] = ' ';
         }
     }
-    current_running->cursor_x = 0;
-    current_running->cursor_y = 0;
+    current_running[cpu_id]->cursor_x = 0;
+    current_running[cpu_id]->cursor_y = 0;
     screen_reflush();
 }
 
@@ -106,8 +107,8 @@ void screen_move_cursor(int x, int y)
         y = SCREEN_HEIGHT - 1;
     else if (y < 0)
         y = 0;
-    current_running->cursor_x = x;
-    current_running->cursor_y = y;
+    current_running[cpu_id]->cursor_x = x;
+    current_running[cpu_id]->cursor_y = y;
     vt100_move_cursor(x + 1, y + 1);
 }
 
@@ -150,5 +151,5 @@ void screen_reflush(void)
     }
 
     /* recover cursor position */
-    vt100_move_cursor(current_running->cursor_x + 1, current_running->cursor_y + 1);
+    vt100_move_cursor(current_running[cpu_id]->cursor_x + 1, current_running[cpu_id]->cursor_y + 1);
 }

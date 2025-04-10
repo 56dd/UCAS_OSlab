@@ -10,6 +10,7 @@
 #include <os/string.h>
 #include <os/mm.h>
 #include <os/time.h>
+#include <os/smp.h>
 #include <sys/syscall.h>
 #include <screen.h>
 #include <printk.h>
@@ -101,11 +102,15 @@ static void init_pcb(void)
     pid0_pcb.status = TASK_RUNNING;
     pid0_pcb.list.prev = NULL;
     pid0_pcb.list.next = NULL;
+    s_pid0_pcb.status =  TASK_READY;
+    s_pid0_pcb.list.prev = NULL;
+    s_pid0_pcb.list.next = NULL;
     for(int  i=0;i<NUM_MAX_TASK;i++){
         pcb[i].status = TASK_EXITED;
     }
     /* TODO: [p2-task1] remember to initialize 'current_running' */
-    current_running = &pid0_pcb;
+    current_running[0] = &pid0_pcb;
+    current_running[1] = &s_pid0_pcb;
 }
 
 static void init_syscall(void)
@@ -148,52 +153,79 @@ static void init_syscall(void)
 
 int main(int app_info_loc, int app_info_size)
 {
-    // Init jump table provided by kernel and bios(ΦωΦ)
-    init_jmptab();
+    int tmp_cpu_id = get_current_cpu_id();
+    if(tmp_cpu_id == 0){
+        // 初始化大内核锁并上锁
+        smp_init();
+        lock_kernel();
 
-    // Init task information (〃'▽'〃)
-    init_task_info(app_info_loc, app_info_size);
+        // Init jump table provided by kernel and bios(ΦωΦ)
+        init_jmptab();
 
-    // Init Process Control Blocks |•'-'•) ✧
-    init_pcb();
-    printk("> [INIT] PCB initialization succeeded.\n");
+        // Init task information (〃'▽'〃)
+        init_task_info(app_info_loc, app_info_size);
 
-    // Read CPU frequency (｡•ᴗ-)_
-    time_base = bios_read_fdt(TIMEBASE);
+        // Init Process Control Blocks |•'-'•) ✧
+        init_pcb();
+        printk("> [INIT] PCB initialization succeeded.\n");
 
-    // Init lock mechanism o(´^｀)o
-    init_locks();
-    printk("> [INIT] Lock mechanism initialization succeeded.\n");
+        // Read CPU frequency (｡•ᴗ-)_
+        time_base = bios_read_fdt(TIMEBASE);
 
-    // Init barriers (´・ω・)
-    init_barriers();
-    printk("> [INIT] Barrier mechanism initialization succeeded.\n");
+        // Init lock mechanism o(´^｀)o
+        init_locks();
+        printk("> [INIT] Lock mechanism initialization succeeded.\n");
 
-    // Init conditions (@v@)
-    init_conditions();
-    printk("> [INIT] Condition mechanism initialization succeeded.\n");
+        // Init barriers (´・ω・)
+        init_barriers();
+        printk("> [INIT] Barrier mechanism initialization succeeded.\n");
 
-    // Init mailbox *v*
-    init_mbox();
-    printk("> [INIT] Mailbox mechanism initialization succeeded.\n");
+        // Init conditions (@v@)
+        init_conditions();
+        printk("> [INIT] Condition mechanism initialization succeeded.\n");
 
-    // Init interrupt (^_^)
-    init_exception();
-    printk("> [INIT] Interrupt processing initialization succeeded.\n");
+        // Init mailbox *v*
+        init_mbox();
+        printk("> [INIT] Mailbox mechanism initialization succeeded.\n");
 
-    // Init system call table (0_0)
-    init_syscall();
-    printk("> [INIT] System call initialized successfully.\n");
+        // Init interrupt (^_^)
+        init_exception();
+        printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
-    // Init screen (QAQ)
-    init_screen();
-    printk("> [INIT] SCREEN initialization succeeded.\n");
+        // Init system call table (0_0)
+        init_syscall();
+        printk("> [INIT] System call initialized successfully.\n");
 
+        // Init screen (QAQ)
+        init_screen();
+        printk("> [INIT] SCREEN initialization succeeded.\n");
+
+        do_exec("shell", 0, NULL);
+
+        // 释放大内核锁，唤醒从核
+        unlock_kernel();
+        wakeup_other_hart(NULL);
+        // 重新抢内核锁
+        lock_kernel();
+        cpu_id = 0;
+    }
+    else{
+        lock_kernel();
+        cpu_id = 1; // 强制置为1，避免出现其id不为1而下标越界的情况
+        current_running[cpu_id]->status = TASK_RUNNING; 
+    }
+
+    setup_exception();
+    
     // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
     bios_set_timer(get_ticks()+TIMER_INTERVAL);
+    if(cpu_id == 0)
+        printk("> [INIT] CPU 0 initialization succeeded.\n");
+    else 
+        printk("> [INIT] CPU 1 initialization succeeded.\n");
 
-    do_exec("shell", 0, NULL);
+    unlock_kernel();
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
     while (1)
     {

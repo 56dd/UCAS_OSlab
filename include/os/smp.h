@@ -8,4 +8,6 @@ extern uint64_t get_current_cpu_id();
 extern void lock_kernel();
 extern void unlock_kernel();
 
+extern uint64_t cpu_id;
+
 #endif /* SMP_H */

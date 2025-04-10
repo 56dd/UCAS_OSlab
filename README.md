@@ -257,3 +257,7 @@ void do_condition_broadcast(int cond_idx){
 
 ### 任务3 开启双核并行运行
 
+```
+#define KERNEL_STACK	0x50500000
+#define S_KERNEL_STACK  0x50600000
+```

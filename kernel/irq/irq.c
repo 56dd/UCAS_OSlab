@@ -6,6 +6,7 @@
 #include <printk.h>
 #include <assert.h>
 #include <screen.h>
+#include <os/smp.h>
 
 #define SCAUSE_IRQ_MASK 0x8000000000000000
 handler_t irq_table[IRQC_COUNT];
@@ -13,6 +14,7 @@ handler_t exc_table[EXCC_COUNT];
 
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
+    cpu_id = get_current_cpu_id();
     // TODO: [p2-task3] & [p2-task4] interrupt handler.
     // call corresponding handler by the value of `scause`
     if(scause & SCAUSE_IRQ_MASK) // 中断
@@ -57,7 +59,6 @@ void init_exception()
     irq_table[IRQC_M_EXT  ] = handle_other;
 
     /* TODO: [p2-task3] set up the entrypoint of exceptions */
-    setup_exception();
 }
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
