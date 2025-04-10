@@ -257,7 +257,155 @@ void do_condition_broadcast(int cond_idx){
 
 ### 任务3 开启双核并行运行
 
+我们思考双核，这里有两个重点，第一是双核的启动，第二是双核的调度。
+
+先从启动开始考虑，由于我们需要加载两个内核，所以需要两个内核栈，以免两个内核相互影响，以下是我两个内核的内核栈地址：
+
 ```
 #define KERNEL_STACK	0x50500000
 #define S_KERNEL_STACK  0x50600000
 ```
+
+从bootloader开始，有关从核的启动,分为3部分，首先关闭所有中断，然后将发生例外的入口地址定为kernel，最后开启软件中断（这是因为我们将通过软件中断的方式来唤醒第二个内核），当然最后也需要打开SSTATUS寄存器中对应位。接下来循环等待换醒就好。
+
+```
+secondary:
+	/* TODO [P3-task3]: 
+	 * 1. Mask all interrupts
+	 * 2. let stvec pointer to kernel_main
+	 * 3. enable software interrupt for ipi
+	 */
+	// 全局关中断(call disable_interrupt)
+	li t0, SR_SIE
+  	csrc CSR_SSTATUS, t0
+
+	// 将stvec指向kernel main	
+	la t0, kernel
+	csrw stvec, t0
+	// 允许软件中断
+	li t0, SIE_SSIE
+	csrs sie, t0		// 开启sie寄存器中对应位
+	li t0, SR_SIE
+	csrs sstatus, t0	// 开启sstatus寄存器中对应位
+	 
+
+wait_for_wakeup:
+	wfi
+	j wait_for_wakeup
+```
+
+接下来是初始化C语言环境，这里包括bss段的清空，然而事实这个只需要由主核来完成就可以了，从核需要做的就是初始化栈指针和tp指针，tp指针的初始化是因为，在之前的代码框架里，我们用了register关键词让tp指向当前线程的pcb，而现在，我无法指定让哪个内核的tp指向哪个pcb，所以我们选择在这里先初始化，让tp指向两个内核的初始pcb0。
+
+```
+s_start:
+  la tp, s_pid0_pcb
+  la sp, S_KERNEL_STACK
+  call main
+```
+
+接下来是各种全局变量的初始化，这里我们让主核进行上述的初始化，从核直接开始设置定时器中断然后调度就可以了。
+
+这样基本上算是启动了双核。
+
+有关双核的调度。我们为了防止两个核互相影响，所以我们使用一个大锁，每当一个核进入到内核时，就上锁，当一个核退出时，就释放锁。这样保证同时只有一个内核正在内核态运行。这里我们就需要实现一个真正的原子指令自旋锁：
+
+```
+void spin_lock_init(spin_lock_t *lock)
+{
+    lock -> status = UNLOCKED;
+}
+
+int spin_lock_try_acquire(spin_lock_t *lock)
+{
+    return (atomic_swap(LOCKED, &lock->status)==UNLOCKED);
+}
+
+void spin_lock_acquire(spin_lock_t *lock)
+{
+    while(atomic_swap(LOCKED, &lock->status)==LOCKED);
+}
+```
+
+这里我们使用原子指令atomic_swap来实现，这个函数的功能就是将传入的参数与目标地址的值进行交换，并返回原值。这样就可以保证原子性，只会有一个内核得到锁。
+
+```
+int tmp_cpu_id = get_current_cpu_id();
+    if(tmp_cpu_id == 0){
+        // 初始化大内核锁并上锁
+        smp_init();
+        lock_kernel();
+        ···
+        do_exec("shell", 0, NULL);
+
+        // 释放大内核锁，唤醒从核
+        unlock_kernel();
+        wakeup_other_hart(NULL);
+        // 重新抢内核锁
+        lock_kernel();
+        cpu_id = 0;
+    }
+    else{
+        lock_kernel();
+        cpu_id = 1; // 强制置为1，避免出现其id不为1而下标越界的情况
+        current_running[cpu_id]->status = TASK_RUNNING; 
+    }
+```
+
+对于主核，我们要首先初始化大内核锁，然后上锁，然后完成各种初始化，并启动shell，然后唤醒从核，然后与从核一起竞争内核锁。而从核只需要竞争锁，并将初始线程设置为TASK_RUNNING，然后继续运行。
+
+然后我们
+
+setup_exception();
+
+这里有改动，我们需要在该函数中加一句
+
+```
+csrw sip, zero
+```
+
+这里sip寄存器指示当前有哪些中断源在 S-mode（Supervisor 模式）处于等待（pending）状态。我们清除这个寄存器，也就是说之前发生的软中断就不会再需要处理了，不然的话当解除中断，会立刻发生软中断。
+
+接下来我们设置定时器中断，并打印信息，然后释放大内核锁，唤醒从核，然后等待中断的发生，开始调度。
+
+```
+bios_set_timer(get_ticks()+TIMER_INTERVAL);
+    if(cpu_id == 0)
+        printk("> [INIT] CPU 0 initialization succeeded.\n");
+    else 
+        printk("> [INIT] CPU 1 initialization succeeded.\n");
+
+    unlock_kernel();
+```
+
+接下来，我们要考虑的一个问题是，发生中断后何时上锁？
+
+这里正确的是，保存好所以的寄存器，然后上锁，然后调度，然后释放锁，然后恢复寄存器，然后继续运行。这是因为，我们只有保存了之前的寄存器，才是使用了内核栈上的寄存器们，不然会与用户栈混淆，一定会出现错误。返回时也是。
+
+即：
+
+```
+ENTRY(exception_handler_entry)
+
+  /* TODO: [p2-task3] save context via the provided macro */
+  SAVE_CONTEXT
+  call lock_kernel
+```
+
+接下来，我们将之前的所有current_running改为current_running[cpu_id]，这样我们就可以区分主核和从核了。为了区分cpu_id，我们在处理中断函数时，先获取当前的cpu_id。
+
+```
+void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+    cpu_id = get_current_cpu_id();
+    ···
+}
+```
+
+然后就可以快乐的双核调度了。
+
+当然还有一个要改的地方，那就是我的const ptr_t s_pid0_stack = INIT_KERNEL_STACK + 2 * PAGE_SIZE;那么我们为用户程序分配内核栈，应当从这个位置开始分配。改掉mm.h的#define FREEMEM_KERNEL (INIT_KERNEL_STACK+2*PAGE_SIZE)。
+
+至此双核调度完成，我们发现，双核要写的代码甚至不如前两个Task，但是双核如何启动，如何调度，非常需要我们思考，一招不慎，满盘皆属，而且在双核里，debug也是一个十分具有困难性的工作。更多的是关于双核如何设计，这需要对之前的框架进行一定整改，这个能力是比实现一个单一的功能，更加可贵的。
+
+### 任务 4：shell 命令 taskset————将进程绑定在指定的核上
+
