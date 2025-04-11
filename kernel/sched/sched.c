@@ -67,6 +67,7 @@ void do_scheduler(void)
     list_node_t* tmp = seek_ready_node();
     current_running[cpu_id] = get_pcb_from_node(tmp);
     current_running[cpu_id]->status = TASK_RUNNING;
+    current_running[cpu_id]->run_cpu_id = cpu_id;
 /*
         current_running[cpu_id]->time_slice_remain--;
     }
@@ -115,9 +116,16 @@ void do_unblock(list_node_t *pcb_node)
 
 list_node_t* seek_ready_node(){
     list_node_t *p = ready_queue.next;
+    pcb_t * tmp;
     // delete p from queue
+    while(1){
     if(p == &ready_queue)
         return cpu_id ? &s_pid0_pcb.list : &pid0_pcb.list;
+    tmp = get_pcb_from_node(p);
+    if(tmp->cpu_mask & (cpu_id+1))
+        break;
+    p = p->next;
+    }
     delete_node_from_q(p);
     return p;
 }
@@ -200,6 +208,7 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         pcb[index].cursor_y = 0;
         pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
         pcb[index].list.prev = pcb[index].list.next = NULL;
+        pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
         // 参数搬到用户栈
         user_sp -= sizeof(char*) * argc;
         argv_ptr = (char **)user_sp;
@@ -262,8 +271,10 @@ void do_process_show(){
     for(i=0; i<NUM_MAX_TASK; i++){
         if(pcb[i].status==TASK_EXITED)
             continue;
+        else if(pcb[i].status==TASK_RUNNING)
+            printk("[%d] PID : %d  STATUS : %s mask: 0x%x Running on core %d\n", i, pcb[i].pid, stat_str[pcb[i].status], pcb[i].cpu_mask, pcb[i].run_cpu_id);
         else
-            printk("[%d] PID : %d  STATUS : %s Core: %d \n", i, pcb[i].pid, stat_str[pcb[i].status],cpu_id);
+            printk("[%d] PID : %d  STATUS : %s mask: 0x%x\n", i, pcb[i].pid, stat_str[pcb[i].status], pcb[i].cpu_mask);
     }
 }
 
@@ -275,13 +286,38 @@ void do_process_show_l(){
     for(i=0; i<NUM_MAX_TASK; i++){
         if(pcb[i].status==TASK_EXITED)
             continue;
+        else if(pcb[i].status==TASK_RUNNING)
+            printl("[%d] PID : %d  STATUS : %s mask: 0x%x Running on core %d\n", i, pcb[i].pid, stat_str[pcb[i].status], pcb[i].cpu_mask, pcb[i].run_cpu_id);
         else
-            printl("[%d] PID : %d  STATUS : %s Core: %d \n", i, pcb[i].pid, stat_str[pcb[i].status],cpu_id);
+            printl("[%d] PID : %d  STATUS : %s mask: 0x%x\n", i, pcb[i].pid, stat_str[pcb[i].status], pcb[i].cpu_mask);
     }
 }//debug用
 
 pid_t do_getpid(){
     return current_running[cpu_id]->pid;
+}
+
+pid_t do_taskset(int mode_p, int mask, void* pid_name){
+    int pid = (int)pid_name;
+    if(mode_p){
+        for(int i=0; i<NUM_MAX_TASK; i++){
+            if(pcb[i].status!=TASK_EXITED && pcb[i].pid == pid){
+                pcb[i].cpu_mask = mask;
+                return pid;
+            }
+        }
+        printk("Fail to find task with pid %d", pid);
+        return 0;
+    }
+    else{
+        char *name = (char*)pid_name;
+        pid = do_exec(name, 1, &name);
+        for(int i=0; i<NUM_MAX_TASK; i++){
+            if(pcb[i].status!=TASK_EXITED && pcb[i].pid == pid)
+                pcb[i].cpu_mask = mask;
+        }
+        return pid;
+    }
 }
 
 

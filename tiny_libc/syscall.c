@@ -259,4 +259,9 @@ int sys_mbox_recv(int mbox_idx, void *msg, int msg_length)
     /* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_recv */
     return invoke_syscall(SYSCALL_MBOX_RECV, (long)mbox_idx, (long)msg, (long)msg_length, IGNORE, IGNORE);
 }
+
+pid_t sys_taskset(int mode_p, int mask, void* pid_name)
+{
+    return invoke_syscall(SYSCALL_TASKSET, mode_p, mask, (long)pid_name, IGNORE, IGNORE);
+}
 /************************************************************/

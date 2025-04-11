@@ -156,6 +156,8 @@ int search_free_pcb();
 void pcb_release(pcb_t* p);
 void free_block_list(list_node_t* head);
 void release_all_lock(pid_t pid);
+
+extern pid_t do_taskset(int mode_p, int mask, void* pid_name);
 /************************************************************/
 
 #endif

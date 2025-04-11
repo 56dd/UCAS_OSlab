@@ -102,9 +102,11 @@ static void init_pcb(void)
     pid0_pcb.status = TASK_RUNNING;
     pid0_pcb.list.prev = NULL;
     pid0_pcb.list.next = NULL;
+    pid0_pcb.cpu_mask = 0x3;
     s_pid0_pcb.status =  TASK_READY;
     s_pid0_pcb.list.prev = NULL;
     s_pid0_pcb.list.next = NULL;
+    s_pid0_pcb.cpu_mask = 0x3;
     for(int  i=0;i<NUM_MAX_TASK;i++){
         pcb[i].status = TASK_EXITED;
     }
@@ -148,6 +150,7 @@ static void init_syscall(void)
     syscall[SYSCALL_MBOX_CLOSE]      =  (long (*)())do_mbox_close;
     syscall[SYSCALL_MBOX_SEND]       =  (long (*)())do_mbox_send;
     syscall[SYSCALL_MBOX_RECV]       =  (long (*)())do_mbox_recv;
+    syscall[SYSCALL_TASKSET]         =  (long (*)())do_taskset;
 }
 /************************************************************/
 

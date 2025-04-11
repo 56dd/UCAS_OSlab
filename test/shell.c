@@ -130,6 +130,25 @@ int main(void)
             else
                 printf("Info: Excute waitpid successfully, pid = %d.\n", pid);
         }
+        else if(strcmp("taskset", argv[0])==0){
+            int mode_p=0, pid=0, mask=0;
+            if(argc == 3){
+                mask = atoi(argv[1]);
+                pid = sys_taskset(mode_p, mask, (void*)argv[2]);
+                printf("Info: Excute taskset successfully, pid = %d.\n", pid);
+                
+            }
+            else if(argc == 4){
+                mode_p = 1;
+                mask = atoi(argv[2]);
+                pid = atoi(argv[3]);
+                sys_taskset(mode_p, mask, (void*)pid);
+                printf("Info: Excute taskset successfully.\n");
+            }
+            else{
+                printf("Error: taskset command format error!");
+            }
+        }
         else{
             printf("Error: Unknown command %s\n", buff);
         }
