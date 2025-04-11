@@ -141,7 +141,7 @@ int search_free_pcb(){  // 查找可用pcb并返回下标，若无则返回-1
 void pcb_release(pcb_t* p){
 
     // 将之从原队列删除
-    if(current_running[cpu_id]->pid != p->pid)
+    if(current_running[0]->pid != p->pid & current_running[1]->pid != p->pid)
         delete_node_from_q(&(p->list));
     // 释放等待队列的所有进程
     free_block_list(&(p->wait_list));

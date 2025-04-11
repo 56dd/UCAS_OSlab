@@ -409,3 +409,60 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 ### 任务 4：shell 命令 taskset————将进程绑定在指定的核上
 
+这其实是一个小需求，相比任务3以及即将要做的任务5，这个需求相对简单，我们只需要在shell中实现一个命令，这个命令的功能就是将进程绑定在指定的核上。我们定义一个新的函数，do_taskset。
+
+```
+pid_t do_taskset(int mode_p, int mask, void* pid_name){
+    int pid = (int)pid_name;
+    if(mode_p){
+        for(int i=0; i<NUM_MAX_TASK; i++){
+            if(pcb[i].status!=TASK_EXITED && pcb[i].pid == pid){
+                pcb[i].cpu_mask = mask;
+                return pid;
+            }
+        }
+        printk("Fail to find task with pid %d", pid);
+        return 0;
+    }
+    else{
+        char *name = (char*)pid_name;
+        pid = do_exec(name, 1, &name);
+        for(int i=0; i<NUM_MAX_TASK; i++){
+            if(pcb[i].status!=TASK_EXITED && pcb[i].pid == pid)
+                pcb[i].cpu_mask = mask;
+        }
+        return pid;
+    }
+}
+```
+
+因为taskset有两种命令形式，所以我们在函数中也有两种处理方式。
+
+重要的是，这里我们在pcb数据结构中新添加了run_cpu_id和cpu_mask两个变量，run_cpu_id表示当前进程在哪个核上运行，cpu_mask表示当前进程在哪个核上运行。我们有必要维护和初始化这两个变量，关于cpu_mask，我们在两个核的pcb0中均初始化为0x3，代表两个核都可以运行。而后我们在exec函数中，默认子进程沿用父进程的cpu_mask，即子进程在父进程所在的核上运行。然后再taskset中，我们可以修改进程的cpu_mask,另外关于run_cpu_id，每当一个task被调度时，我们就更新run_cpu_id，这样我们就可以知道当前进程在哪个核上运行。
+
+然后修改ps命令，以及在shell中添加taskset命令。即可，这比较简单，直接参考代码即可。
+
+#### 突发bug
+
+这个时候，我在O2测试时突然出现了一个bug，那就是在waitpid我灵机一动kill了正在运行的waitpid进程，然后就直接报错了！
+
+这种bug是相当好de的，我们直接锁定kill，然后调试，果然，是因为双核之后，有关pcb_release的全新逻辑哦，应当是
+
+
+```
+void pcb_release(pcb_t* p){
+
+    // 将之从原队列删除
+    if(current_running[0]->pid != p->pid & current_running[1]->pid != p->pid)
+        delete_node_from_q(&(p->list));
+    // 释放等待队列的所有进程
+    free_block_list(&(p->wait_list));
+    // 释放持有的所有锁
+    release_all_lock(p->pid);
+}
+```
+
+无论是哪个核正在跑程序，我们都不用将之从原队列删除，因为它现在根本不在队列上。这样的问题，也让我考虑到细粒度锁的实现十分困难，如何让两个核都可以进入内核，这是值得思考的问题。
+
+### 任务 5：细粒度锁内核实现
+
