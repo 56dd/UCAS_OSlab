@@ -45,6 +45,8 @@
 #include <os/sched.h>
 #include <os/irq.h>
 #include <os/kernel.h>
+#include <os/smp.h>
+#include <os/lock.h>
 
 static unsigned int mini_strlen(const char *s)
 {
@@ -276,6 +278,7 @@ static int _vprint(const char *fmt, va_list _va,
 
 static void _output_wrapper(char *buff)
 {
+    screen_cpu_id = get_current_cpu_id();
     screen_write(buff);
     screen_reflush();
 }

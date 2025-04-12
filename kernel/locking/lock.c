@@ -49,18 +49,19 @@ int do_mutex_lock_init(int key)
             return i;
     }
     mlocks[lock_used_num].key = key;
-    return lock_used_num++;
+    lock_used_num++;
+    return lock_used_num;
 }
 
 void do_mutex_lock_acquire(int mlock_idx)
 {
     /* TODO: [p2-task2] acquire mutex lock */
     if(spin_lock_try_acquire(&mlocks[mlock_idx].lock)){
-        mlocks[mlock_idx].pid = current_running[cpu_id]->pid;
+        mlocks[mlock_idx].pid = current_running[sched_cpu_id]->pid;
         return;
     }
     // 获取锁失败
-    do_block(&current_running[cpu_id]->list, &mlocks[mlock_idx].block_queue);
+    do_block(&current_running[sched_cpu_id]->list, &mlocks[mlock_idx].block_queue);
     do_scheduler();
 }
 
@@ -112,7 +113,7 @@ int do_barrier_init(int key, int goal){
 void do_barrier_wait(int bar_idx){
     barrs[bar_idx].wait_num++;
     if(barrs[bar_idx].goal != barrs[bar_idx].wait_num){
-        do_block(&current_running[cpu_id]->list, &barrs[bar_idx].wait_list);
+        do_block(&current_running[sched_cpu_id]->list, &barrs[bar_idx].wait_list);
         do_scheduler();
     }
     else{
@@ -153,8 +154,8 @@ int do_condition_init(int key){
 }
 void do_condition_wait(int cond_idx, int mutex_idx){ 
     // 阻塞在条件变量的等待队列
-    current_running[cpu_id]->status = TASK_BLOCKED;
-    add_node_to_q(&current_running[cpu_id]->list, &conds[cond_idx].wait_list);
+    current_running[sched_cpu_id]->status = TASK_BLOCKED;
+    add_node_to_q(&current_running[sched_cpu_id]->list, &conds[cond_idx].wait_list);
     do_mutex_lock_release(mutex_idx);   
     do_scheduler();
 
@@ -237,7 +238,7 @@ int do_mbox_send(int mbox_idx, void * msg, int msg_length){
     int cnt=0;
     // 邮箱已满，阻塞
     while((tmp_wcur= mbox[mbox_idx].wcur + msg_length)>MAX_MBOX_LENGTH + mbox[mbox_idx].rcur){
-        do_block(&current_running[cpu_id]->list, &mbox[mbox_idx].wait_mbox_full);
+        do_block(&current_running[sched_cpu_id]->list, &mbox[mbox_idx].wait_mbox_full);
         do_scheduler();
         cnt++;
     }
@@ -252,7 +253,7 @@ int do_mbox_recv(int mbox_idx, void * msg, int msg_length){
     int cnt=0;
     // 邮箱读空，阻塞
     while((tmp_rcur = mbox[mbox_idx].rcur + msg_length) > mbox[mbox_idx].wcur){
-        do_block(&current_running[cpu_id]->list, &mbox[mbox_idx].wait_mbox_empty);
+        do_block(&current_running[sched_cpu_id]->list, &mbox[mbox_idx].wait_mbox_empty);
         do_scheduler();
         cnt++;
     }

@@ -5,12 +5,14 @@
 #include <os/kernel.h>
 #include <printk.h>
 
-spin_lock_t klock;  // 大内核锁
-uint64_t cpu_id;
 void smp_init()
 {
     /* TODO: P3-TASK3 multicore*/
-    spin_lock_init(&klock);
+    spin_lock_init(&klock);;
+    spin_lock_init(&bios_lock);  
+    spin_lock_init(&screen_lock);
+    spin_lock_init(&sched_lock);
+
 }
 
 void wakeup_other_hart()
@@ -30,3 +32,9 @@ void unlock_kernel()
     /* TODO: P3-TASK3 multicore*/
     spin_lock_release(&klock);
 }
+
+void unlock_sched()
+{
+    spin_lock_release(&sched_lock);
+}
+

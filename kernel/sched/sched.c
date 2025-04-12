@@ -37,6 +37,7 @@ int if_switch = 0;
 
 void do_scheduler(void)
 {
+    cpu_id = get_current_cpu_id();
     // TODO: [p2-task3] Check sleep queue to wake up PCBs
     check_sleeping();
 
@@ -44,56 +45,57 @@ void do_scheduler(void)
     /* Do not touch this comment. Reserved for future projects. */
     /************************************************************/
 
-    // TODO: [p2-task1] Modify the current_running[cpu_id] pointer.
+    // TODO: [p2-task1] Modify the current_running[sched_cpu_id] pointer.
     pcb_t * prior_running;
-    prior_running = current_running[cpu_id];
+    prior_running = current_running[sched_cpu_id];
 /*
-    if(current_running[cpu_id]->time_slice_remain>0){
+    if(current_running[sched_cpu_id]->time_slice_remain>0){
         if_switch = 0;
     }
-    else if(current_running[cpu_id]->time_slice_remain==0){
-        current_running[cpu_id]->time_slice_remain+=current_running[cpu_id]->time_slice;
+    else if(current_running[sched_cpu_id]->time_slice_remain==0){
+        current_running[sched_cpu_id]->time_slice_remain+=current_running[sched_cpu_id]->time_slice;
         if_switch = 1;
     }
     if(if_switch == 1){
 */
-    if(current_running[cpu_id]->pid != 0){
+    if(current_running[sched_cpu_id]->pid != 0){
         // add to the ready queue
-        if(current_running[cpu_id]->status == TASK_RUNNING){
-            current_running[cpu_id]->status = TASK_READY;
-            add_node_to_q(&current_running[cpu_id]->list, &ready_queue);
+        if(current_running[sched_cpu_id]->status == TASK_RUNNING){
+            current_running[sched_cpu_id]->status = TASK_READY;
+            add_node_to_q(&current_running[sched_cpu_id]->list, &ready_queue);
         }    
     }
     list_node_t* tmp = seek_ready_node();
-    current_running[cpu_id] = get_pcb_from_node(tmp);
-    current_running[cpu_id]->status = TASK_RUNNING;
-    current_running[cpu_id]->run_cpu_id = cpu_id;
+    current_running[sched_cpu_id] = get_pcb_from_node(tmp);
+    current_running[sched_cpu_id]->status = TASK_RUNNING;
+    current_running[sched_cpu_id]->run_cpu_id = sched_cpu_id;
 /*
-        current_running[cpu_id]->time_slice_remain--;
+        current_running[sched_cpu_id]->time_slice_remain--;
     }
     else if(if_switch == 0)
     {
-        current_running[cpu_id]->time_slice_remain--;
+        current_running[sched_cpu_id]->time_slice_remain--;
     }
 */
-    printl("[scheduler] switch to %d\n",current_running[cpu_id]->pid);
+    printl("[scheduler] switch to %d\n",current_running[sched_cpu_id]->pid);
     do_process_show_l();
 
-    // TODO: [p2-task1] switch_to current_running[cpu_id]
-    switch_to(prior_running->kernel_sp, current_running[cpu_id]->kernel_sp);
+    // TODO: [p2-task1] switch_to current_running[sched_cpu_id]
+    switch_to(prior_running->kernel_sp, current_running[sched_cpu_id]->kernel_sp);
     return;
 
 }
 
 void do_sleep(uint32_t sleep_time)
 {
+    cpu_id = get_current_cpu_id();
     // TODO: [p2-task3] sleep(seconds)
     // NOTE: you can assume: 1 second = 1 `timebase` ticks
-    // 1. block the current_running[cpu_id]
-    do_block(&current_running[cpu_id]->list, &sleep_queue);
+    // 1. block the current_running[sched_cpu_id]
+    do_block(&current_running[sched_cpu_id]->list, &sleep_queue);
     // 2. set the wake up time for the blocked task
-    current_running[cpu_id]->wakeup_time = get_timer()+sleep_time;
-    // 3. reschedule because the current_running[cpu_id] is blocked.
+    current_running[sched_cpu_id]->wakeup_time = get_timer()+sleep_time;
+    // 3. reschedule because the current_running[sched_cpu_id] is blocked.
     do_scheduler();
 }
 
@@ -120,9 +122,9 @@ list_node_t* seek_ready_node(){
     // delete p from queue
     while(1){
     if(p == &ready_queue)
-        return cpu_id ? &s_pid0_pcb.list : &pid0_pcb.list;
+        return sched_cpu_id ? &s_pid0_pcb.list : &pid0_pcb.list;
     tmp = get_pcb_from_node(p);
-    if(tmp->cpu_mask & (cpu_id+1))
+    if(tmp->cpu_mask & (sched_cpu_id+1))
         break;
     p = p->next;
     }
@@ -185,7 +187,7 @@ pcb_t * get_pcb_from_node(list_node_t* node){
         if(node == &pcb[i].list)
             return &pcb[i];
     }
-    return cpu_id ? &s_pid0_pcb : &pid0_pcb;    // fail to find the task, return to kernel
+    return sched_cpu_id ? &s_pid0_pcb : &pid0_pcb;    // fail to find the task, return to kernel
 }
 
 pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功返回0
@@ -208,7 +210,7 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         pcb[index].cursor_y = 0;
         pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
         pcb[index].list.prev = pcb[index].list.next = NULL;
-        pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
+        pcb[index].cpu_mask = current_running[sched_cpu_id]->cpu_mask;
         // 参数搬到用户栈
         user_sp -= sizeof(char*) * argc;
         argv_ptr = (char **)user_sp;
@@ -231,8 +233,8 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
 }
 
 void do_exit(void){
-    current_running[cpu_id]->status = TASK_EXITED;
-    pcb_release(current_running[cpu_id]);
+    current_running[sched_cpu_id]->status = TASK_EXITED;
+    pcb_release(current_running[sched_cpu_id]);
     do_scheduler();
 }
 
@@ -253,7 +255,7 @@ int do_waitpid(pid_t pid){
     for(int i=0; i<NUM_MAX_TASK; i++){
         if(pcb[i].pid == pid){
             if(pcb[i].status != TASK_EXITED){
-                do_block(&(current_running[cpu_id]->list), &(pcb[i].wait_list));
+                do_block(&(current_running[sched_cpu_id]->list), &(pcb[i].wait_list));
                 do_scheduler();
                 return pid;
             }
@@ -294,7 +296,7 @@ void do_process_show_l(){
 }//debug用
 
 pid_t do_getpid(){
-    return current_running[cpu_id]->pid;
+    return current_running[sched_cpu_id]->pid;
 }
 
 pid_t do_taskset(int mode_p, int mask, void* pid_name){
@@ -324,61 +326,61 @@ pid_t do_taskset(int mode_p, int mask, void* pid_name){
 
 /*
 void do_set_sche_workload(int position){
-    if(current_running[cpu_id] -> if_fly == 0){
-        current_running[cpu_id] -> if_fly = 1;
-        current_running[cpu_id] -> fly_id = fly_num++;
+    if(current_running[sched_cpu_id] -> if_fly == 0){
+        current_running[sched_cpu_id] -> if_fly = 1;
+        current_running[sched_cpu_id] -> fly_id = fly_num++;
     }
-    current_running[cpu_id] -> position_last = current_running[cpu_id] -> position_now;
-    current_running[cpu_id] -> position_now = position;
-    current_running[cpu_id] -> time_last = current_running[cpu_id] -> time_now;
-    current_running[cpu_id] -> time_now = get_ticks();
-    printl("pid[%d]:position_last:%d,position_now:%d,time_last:%d,time_now:%d\n",current_running[cpu_id]->pid,current_running[cpu_id]->position_last,current_running[cpu_id]->position_now,current_running[cpu_id]->time_last,current_running[cpu_id]->time_now);
-    if(current_running[cpu_id] -> position_last!=0 && (current_running[cpu_id] -> position_now < current_running[cpu_id] -> position_last))
+    current_running[sched_cpu_id] -> position_last = current_running[sched_cpu_id] -> position_now;
+    current_running[sched_cpu_id] -> position_now = position;
+    current_running[sched_cpu_id] -> time_last = current_running[sched_cpu_id] -> time_now;
+    current_running[sched_cpu_id] -> time_now = get_ticks();
+    printl("pid[%d]:position_last:%d,position_now:%d,time_last:%d,time_now:%d\n",current_running[sched_cpu_id]->pid,current_running[sched_cpu_id]->position_last,current_running[sched_cpu_id]->position_now,current_running[sched_cpu_id]->time_last,current_running[sched_cpu_id]->time_now);
+    if(current_running[sched_cpu_id] -> position_last!=0 && (current_running[sched_cpu_id] -> position_now < current_running[sched_cpu_id] -> position_last))
     {
-        current_running[cpu_id] -> fly_speed_absolute_b = (current_running[cpu_id] -> time_now - current_running[cpu_id] -> time_last) / (current_running[cpu_id] -> position_last - current_running[cpu_id] -> position_now);
-        printl("pid[%d]fly_id[%d]:fly_speed_absolute_b:%d\n",current_running[cpu_id]->pid,current_running[cpu_id] ->fly_id,current_running[cpu_id]->fly_speed_absolute_b);
-        FLY_SPEED_TABLE[current_running[cpu_id] -> fly_id] = current_running[cpu_id] -> fly_speed_absolute_b;
-        if(current_running[cpu_id] -> fly_id >= table_p){
+        current_running[sched_cpu_id] -> fly_speed_absolute_b = (current_running[sched_cpu_id] -> time_now - current_running[sched_cpu_id] -> time_last) / (current_running[sched_cpu_id] -> position_last - current_running[sched_cpu_id] -> position_now);
+        printl("pid[%d]fly_id[%d]:fly_speed_absolute_b:%d\n",current_running[sched_cpu_id]->pid,current_running[sched_cpu_id] ->fly_id,current_running[sched_cpu_id]->fly_speed_absolute_b);
+        FLY_SPEED_TABLE[current_running[sched_cpu_id] -> fly_id] = current_running[sched_cpu_id] -> fly_speed_absolute_b;
+        if(current_running[sched_cpu_id] -> fly_id >= table_p){
             table_p ++;
         }
         for(int i=0;i<table_p;i++)
         {
             printl("FLT_SPEED_TABLE[%d]:%d\n",i,FLY_SPEED_TABLE[i]);
         }
-        current_running[cpu_id] -> fly_speed_ralative_b = normalize_speed_table(FLY_SPEED_TABLE, table_p, current_running[cpu_id] -> fly_id);
-        if(current_running[cpu_id] -> fly_speed_ralative_b > 0)
-            current_running[cpu_id] -> time_slice ++;
+        current_running[sched_cpu_id] -> fly_speed_ralative_b = normalize_speed_table(FLY_SPEED_TABLE, table_p, current_running[sched_cpu_id] -> fly_id);
+        if(current_running[sched_cpu_id] -> fly_speed_ralative_b > 0)
+            current_running[sched_cpu_id] -> time_slice ++;
         else {
-            current_running[cpu_id] ->fly_speed_ralative_b = -current_running[cpu_id] -> fly_speed_ralative_b;
-            current_running[cpu_id] -> time_slice --;
-            if(current_running[cpu_id] -> time_slice < 1)
-                current_running[cpu_id] -> time_slice = 1;
+            current_running[sched_cpu_id] ->fly_speed_ralative_b = -current_running[sched_cpu_id] -> fly_speed_ralative_b;
+            current_running[sched_cpu_id] -> time_slice --;
+            if(current_running[sched_cpu_id] -> time_slice < 1)
+                current_running[sched_cpu_id] -> time_slice = 1;
         }
-        printl("pid[%d]:fly_speed_ralative_b:%d,time_slice:%d\n",current_running[cpu_id]->pid,current_running[cpu_id]->fly_speed_ralative_b,current_running[cpu_id]->time_slice);
+        printl("pid[%d]:fly_speed_ralative_b:%d,time_slice:%d\n",current_running[sched_cpu_id]->pid,current_running[sched_cpu_id]->fly_speed_ralative_b,current_running[sched_cpu_id]->time_slice);
     }
 }
 */
 
 void do_set_sche_workload(int position){
-    if(current_running[cpu_id] -> if_fly == 0){
-        current_running[cpu_id] -> if_fly = 1;
-        current_running[cpu_id] -> fly_id = fly_num++;
-        current_running[cpu_id] -> position_last = position;
-        current_running[cpu_id] -> position_now = 0;
+    if(current_running[sched_cpu_id] -> if_fly == 0){
+        current_running[sched_cpu_id] -> if_fly = 1;
+        current_running[sched_cpu_id] -> fly_id = fly_num++;
+        current_running[sched_cpu_id] -> position_last = position;
+        current_running[sched_cpu_id] -> position_now = 0;
         return;
     }
-    if(current_running[cpu_id] -> position_last!=0 )
+    if(current_running[sched_cpu_id] -> position_last!=0 )
     {
-        current_running[cpu_id] -> position_now ++;
-        FLY_LENGTH_TABLE[current_running[cpu_id] -> fly_id] = current_running[cpu_id] -> position_now;
-        if(current_running[cpu_id] -> fly_id >= table_p){
+        current_running[sched_cpu_id] -> position_now ++;
+        FLY_LENGTH_TABLE[current_running[sched_cpu_id] -> fly_id] = current_running[sched_cpu_id] -> position_now;
+        if(current_running[sched_cpu_id] -> fly_id >= table_p){
             table_p ++;
         }
         if(table_p < fly_num)
-            current_running[cpu_id] -> time_slice = 12;
+            current_running[sched_cpu_id] -> time_slice = 12;
         else
-            current_running[cpu_id] -> time_slice = calculate_time_slice(FLY_LENGTH_TABLE, table_p, current_running[cpu_id] -> fly_id);
-        printl("pid[%d]:time_slice[%d]",current_running[cpu_id]->pid,current_running[cpu_id]->time_slice);
+            current_running[sched_cpu_id] -> time_slice = calculate_time_slice(FLY_LENGTH_TABLE, table_p, current_running[sched_cpu_id] -> fly_id);
+        printl("pid[%d]:time_slice[%d]",current_running[sched_cpu_id]->pid,current_running[sched_cpu_id]->time_slice);
     }
 }
 

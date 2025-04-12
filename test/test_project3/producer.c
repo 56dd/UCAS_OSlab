@@ -4,8 +4,35 @@
 #include <time.h>
 #include <assert.h>
 
+#define COND_KEY 58
+#define LOCK_KEY 42
+#define C_CORE 0
+
 int main(int argc, char *argv[])
 {
+#ifdef C_CORE 
+    int i;
+    int production = 3;
+    int sum_production = 0;
+    // Initialize condition
+    int handle_cond = sys_condition_init(COND_KEY);
+    int handle_lock = sys_mutex_init(LOCK_KEY);
+    int * num_staff = (int*)(0x56000000);
+
+    for (i = 0;; i++)
+    {
+        sys_mutex_acquire(handle_lock);
+
+        (*num_staff) += production;
+        sum_production += production;
+
+        sys_mutex_release(handle_lock);
+
+        // condition_signal(&condition);
+        sys_condition_broadcast(handle_cond);
+
+    }
+#else
 #ifndef S_CORE
     if (argc < 5)
     {
@@ -44,6 +71,7 @@ int main(int argc, char *argv[])
 
         sys_sleep(next);
     }  
+#endif
 #endif
     
     return 0;

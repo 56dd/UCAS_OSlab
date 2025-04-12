@@ -19,6 +19,7 @@
 #include <csr.h>
 
 extern void ret_from_exception();
+extern void ret_from_exception_v();
 int task_num = 0;
 
 // Task info array
@@ -91,7 +92,7 @@ void init_pcb_stack(
     switchto_context_t *pt_switchto =
         (switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));  
     pcb->kernel_sp = kernel_stack - sizeof(switchto_context_t) - sizeof(regs_context_t); 
-    pt_switchto->regs[0] = (uint64_t)ret_from_exception;     // ra        
+    pt_switchto->regs[0] = (uint64_t)ret_from_exception_v;     // ra        
     pt_switchto->regs[1] = pcb->kernel_sp;  // sp
 }
 

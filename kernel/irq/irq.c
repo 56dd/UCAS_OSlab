@@ -14,7 +14,6 @@ handler_t exc_table[EXCC_COUNT];
 
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-    cpu_id = get_current_cpu_id();
     // TODO: [p2-task3] & [p2-task4] interrupt handler.
     // call corresponding handler by the value of `scause`
     if(scause & SCAUSE_IRQ_MASK) // 中断
@@ -28,8 +27,13 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p2-task4] clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
+    spin_lock_acquire(&sched_lock);
+    sched_cpu_id = get_current_cpu_id();
+    printl("I'am Pid[%d],i'am on Core[%d], Now i take the sched_lock.\n",sched_cpu_id,current_running[sched_cpu_id]->pid);
     bios_set_timer(get_ticks()+TIMER_INTERVAL); //下一次查询中断的时间
     do_scheduler();
+    printl("I'am Pid[%d],i'am on Core[%d], Now i will release the sched_lock.\n",sched_cpu_id,current_running[sched_cpu_id]->pid);
+    spin_lock_release(&sched_lock);
 }
 
 void init_exception()
