@@ -8,7 +8,7 @@
 void smp_init()
 {
     /* TODO: P3-TASK3 multicore*/
-    spin_lock_init(&klock);;
+    spin_lock_init(&klock);
     spin_lock_init(&bios_lock);  
     spin_lock_init(&screen_lock);
     spin_lock_init(&sched_lock);
