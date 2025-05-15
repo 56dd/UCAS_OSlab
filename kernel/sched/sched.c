@@ -223,6 +223,7 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
         pcb[index].list.prev = pcb[index].list.next = NULL;
         pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
+        uint64_t user_sp_ori = user_sp;
         // 参数搬到用户栈
         user_sp -= sizeof(char*) * argc;
         argv_ptr = (char **)user_sp;
@@ -230,14 +231,15 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         for(int i=argc-1; i>=0; i--){
             int len = strlen(argv[i])+1;    //要拷贝'\0'
             user_sp -=len;
-            argv_ptr[i] = (char*)user_sp;
+            argv_ptr[i] = (char*)(pcb[index].user_sp-(user_sp_ori-user_sp));
             strcpy((char*)user_sp, argv[i]);
         }
         user_sp = (reg_t)ROUNDDOWN(user_sp, 128);    // 栈指针128字节对齐
-        uint64_t user_sp_ori = alloc_page_helper(pcb[index].user_sp - PAGE_SIZE, pgdir) + PAGE_SIZE;
 
+        argv_ptr = (char**)(pcb[index].user_sp-(sizeof(char*) * argc));
         pcb[index].user_sp -= (user_sp_ori - user_sp);
         //初始化栈，改变入口地址，存储参数
+        
         init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, entry_point, &pcb[index], argc, argv_ptr);
         // 加入ready队列
         add_node_to_q(&pcb[index].list, &ready_queue);
@@ -249,6 +251,8 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
 
 void do_exit(void){
     current_running[cpu_id]->status = TASK_EXITED;
+    set_satp(SATP_MODE_SV39, 0, PGDIR_PA >> NORMAL_PAGE_SHIFT);
+    local_flush_tlb_all();
     pcb_release(current_running[cpu_id]);
     do_scheduler();
 }
@@ -258,6 +262,7 @@ int do_kill(pid_t pid){
         if(pcb[i].status!=TASK_EXITED && pcb[i].pid==pid){
             // 修改进程状态
             pcb[i].status = TASK_EXITED;
+
             pcb_release(&pcb[i]);
             // 返回1，表示找到对应进程且将其kill
             return 1;

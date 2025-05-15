@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     sys_mutex_acquire(handle2);
 
     // Start for-loop, wait for timeup or being killed
-    for (int i = 0; i < 10000; ++i)
+    for (int i = 0; i < 1000; ++i)
     {
         sys_move_cursor(0, print_location);
         printf("> [TASK] I am task with pid %d, I have acquired two mutex locks. (%d)", sys_getpid(), i);
