@@ -28,6 +28,7 @@
 
 #include <type.h>
 #include <pgtable.h>
+#include <os/sched.h>
 
 #define MAP_KERNEL 1
 #define MAP_USER 2
@@ -45,6 +46,7 @@
 extern ptr_t allocPage(int numPage);
 // TODO [P4-task1] */
 void freePage(ptr_t baseAddr);
+void free_all_pages(pcb_t* pcb);
 
 // #define S_CORE
 // NOTE: only need for S-core to alloc 2MB large page

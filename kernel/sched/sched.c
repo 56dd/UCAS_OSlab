@@ -152,6 +152,8 @@ void pcb_release(pcb_t* p){
     free_block_list(&(p->wait_list));
     // 释放持有的所有锁
     release_all_lock(p->pid);
+
+    free_all_pages(p);
 }
 void release_all_lock(pid_t pid){
     for(int i=0; i<LOCK_NUM; i++){
