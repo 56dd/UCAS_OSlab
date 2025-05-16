@@ -132,4 +132,25 @@ static inline void clear_pgdir(uintptr_t pgdir_addr)
     bzero((void*)pgdir_addr, NORMAL_PAGE_SIZE);
 }
 
+
+static inline uintptr_t get_pteptr_of(uintptr_t va, uintptr_t pgdir_va){
+    va &= VA_MASK;
+    uint64_t vpn2 =
+        va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+    uint64_t vpn1 = (vpn2 << PPN_BITS) ^
+                    (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+    uint64_t vpn0 = (vpn2 << (PPN_BITS + PPN_BITS)) ^
+                    (vpn1 << PPN_BITS) ^
+                    (va >> NORMAL_PAGE_SHIFT);
+    PTE *pgd = (PTE*)pgdir_va;
+    if (pgd[vpn2] == 0) 
+        return 0;
+    PTE *pmd = (uintptr_t *)pa2kva((get_pa(pgd[vpn2])));
+    if(pmd[vpn1] == 0)
+        return 0;
+    PTE *pte = (PTE *)pa2kva(get_pa(pmd[vpn1]));
+    return (uintptr_t)(pte+vpn0);
+}
+
+
 #endif  // PGTABLE_H

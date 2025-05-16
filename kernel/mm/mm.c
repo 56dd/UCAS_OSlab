@@ -168,6 +168,47 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir)
     return pa2kva(get_pa(pte[vpn0]));
 }
 
+// 将虚地址和给定实地址的映射关系存于给定页表，执行成功返回1，否则返回0
+int map_page_helper(uintptr_t va, uintptr_t pa, uintptr_t pgdir){
+    va &= VA_MASK;
+    uint64_t vpn2 =
+        va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+    uint64_t vpn1 = (vpn2 << PPN_BITS) ^
+                    (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+    uint64_t vpn0 = (vpn2 << (PPN_BITS + PPN_BITS)) ^
+                    (vpn1 << PPN_BITS) ^
+                    (va >> NORMAL_PAGE_SHIFT);
+    PTE *pgd = (PTE*)pgdir;
+    if (pgd[vpn2] == 0) {
+        // 分配一个新的三级页目录，注意需要转化为实地址！
+        set_pfn(&pgd[vpn2], kva2pa(allocPage(1)) >> NORMAL_PAGE_SHIFT);
+        set_attribute(&pgd[vpn2], _PAGE_PRESENT | _PAGE_USER);
+        clear_pgdir(pa2kva(get_pa(pgd[vpn2])));
+    }
+    PTE *pmd = (uintptr_t *)pa2kva((get_pa(pgd[vpn2])));
+    if(pmd[vpn1] == 0){
+        // 分配一个新的二级页目录
+        set_pfn(&pmd[vpn1], kva2pa(allocPage(1)) >> NORMAL_PAGE_SHIFT);
+        set_attribute(&pmd[vpn1], _PAGE_PRESENT | _PAGE_USER);
+        clear_pgdir(pa2kva(get_pa(pmd[vpn1])));
+    }
+    PTE *pte = (PTE *)pa2kva(get_pa(pmd[vpn1]));
+    // 若pa等于0，即取消映射操作
+    if(pa==0){
+        pte[vpn0] = 0;
+        return 1;
+    }
+    // 将对应实地址置为pa
+    else if(pte[vpn0]==0){
+        set_pfn(&pte[vpn0], pa >> NORMAL_PAGE_SHIFT);
+        set_attribute(
+            &pte[vpn0], _PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE |
+                            _PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_USER);
+        return 1;
+    }
+    return 0;
+}
+
 uintptr_t shm_page_get(int key)
 {
     // TODO [P4-task4] shm_page_get:

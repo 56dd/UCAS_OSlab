@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <screen.h>
 #include <os/smp.h>
+#include <os/mm.h>
 
 #define SCAUSE_IRQ_MASK 0x8000000000000000
 handler_t irq_table[IRQC_COUNT];
@@ -42,9 +43,9 @@ void init_exception()
     exc_table[EXCC_LOAD_ACCESS     ] = handle_other;
     exc_table[EXCC_STORE_ACCESS    ] = handle_other;
     exc_table[EXCC_SYSCALL         ] = handle_syscall;
-    exc_table[EXCC_INST_PAGE_FAULT ] = handle_other;
-    exc_table[EXCC_LOAD_PAGE_FAULT ] = handle_other;
-    exc_table[EXCC_STORE_PAGE_FAULT] = handle_other;
+    exc_table[EXCC_INST_PAGE_FAULT ] = handle_page_fault;
+    exc_table[EXCC_LOAD_PAGE_FAULT ] = handle_page_fault;
+    exc_table[EXCC_STORE_PAGE_FAULT] = handle_page_fault;
 
     /* TODO: [p2-task4] initialize irq_table */
     /* NOTE: handle_int, handle_other, etc.*/
@@ -59,6 +60,14 @@ void init_exception()
     irq_table[IRQC_M_EXT  ] = handle_other;
 
     /* TODO: [p2-task3] set up the entrypoint of exceptions */
+}
+
+void handle_page_fault(regs_context_t *regs, uint64_t stval, uint64_t scause){
+    PTE pte = get_pteptr_of(stval, current_running[cpu_id]->pgdir);
+    // 页面存在
+    // 页面不存在，建立映射  
+    alloc_page_helper(stval, current_running[cpu_id]->pgdir);
+    local_flush_tlb_all();
 }
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
@@ -84,3 +93,6 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
     printk("tval: 0x%lx cause: 0x%lx\n", stval, scause);
     assert(0);
 }
+
+
+
