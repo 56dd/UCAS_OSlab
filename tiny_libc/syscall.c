@@ -265,6 +265,11 @@ pid_t sys_taskset(int mode_p, int mask, void* pid_name)
     return invoke_syscall(SYSCALL_TASKSET, mode_p, mask, (long)pid_name, IGNORE, IGNORE);
 }
 
+int sys_usepage(void)
+{
+    return invoke_syscall(SYSCALL_USEPAGE, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
 void* sys_shmpageget(int key)
 {
     /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpageget */

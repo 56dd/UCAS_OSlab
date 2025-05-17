@@ -62,6 +62,18 @@ typedef enum {
     TASK_EXITED,
 } task_status_t;
 
+// 树节点结构体（与之前一致）
+typedef struct TreeNode {
+    struct pcb_t* parent;
+    struct pcb_t** children;
+    int child_count;
+    int capacity;
+} TreeNode;
+
+// 静态分配所有节点空间
+TreeNode all_nodes[NUM_MAX_TASK];           // 所有 treenode 节点
+
+
 /* Process Control Block */
 typedef struct pcb
 {
@@ -78,9 +90,14 @@ typedef struct pcb
 
     /* process id */
     pid_t pid;
+    TreeNode* treenode;
 
     /* pgdir */
     uintptr_t pgdir;
+
+    bool if_thread;
+
+
 
     /* BLOCK | READY | RUNNING */
     task_status_t status;
@@ -107,6 +124,8 @@ typedef struct pcb
 
     
 } pcb_t;
+
+pcb_t* all_children[NUM_MAX_TASK][4];  // 每个节点最多 INIT_CHILD_CAPACITY 个子节点指针
 
 /* ready queue to run */
 extern list_head ready_queue;
@@ -163,6 +182,10 @@ void release_all_lock(pid_t pid);
 extern pid_t do_taskset(int mode_p, int mask, void* pid_name);
 
 extern void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg);
+
+void init_TreeNode();
+void add_child(pcb_t* parent, pcb_t* child);
+void kill_all_children(pcb_t* parent);
 /************************************************************/
 
 #endif

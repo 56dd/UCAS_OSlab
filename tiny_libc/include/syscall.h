@@ -42,6 +42,7 @@
 #define SYSCALL_SHM_GET 56
 #define SYSCALL_SHM_DT 57
 #define SYSCALL_THREAD_CREATE 58
+#define SYSCALL_USEPAGE 59
 
 
 #endif

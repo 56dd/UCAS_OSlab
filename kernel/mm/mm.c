@@ -10,6 +10,7 @@
 
 // NOTE: A/C-core
 static ptr_t kernMemCurr = FREEMEM_KERNEL;
+int usepage = 0;
 
 #define TOTAL_PAGES 65536         // 总共 1024 页（即 256MB 内存）
 #define KERNELMEM_START 0xffffffc050000000lu
@@ -55,6 +56,7 @@ ptr_t allocPage(int numPage)
             assert(0);
         }
     }
+    usepage+=numPage;
     return ret;
 }
 
@@ -82,7 +84,7 @@ void freePage(ptr_t baseAddr)
 
     // 标记该页为空闲
     page_bitmap[BITMAP(baseAddr)] &= ~(1 << (BITMAP_OFFSET(baseAddr)));
-
+    usepage--;
 }
 
 void free_all_pages(pcb_t* pcb)
@@ -90,6 +92,7 @@ void free_all_pages(pcb_t* pcb)
     PTE *pgd = (PTE*)pcb->pgdir;
     for(int i=0;i<512;i++)
     {
+        int kernel = 0;
         if(pgd[i] == 0)
         {
             continue;
@@ -97,8 +100,13 @@ void free_all_pages(pcb_t* pcb)
         PTE *pmd = (uintptr_t *)pa2kva((get_pa(pgd[i])));
         for(int j=0;j<512;j++)
         {
-            if(pmd[j] == 0 || (pmd[j] & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) != 0)
+            if(pmd[j] == 0)
             {
+                continue;
+            }
+            if((pmd[j] & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) != 0)
+            {
+                kernel = 1;
                 continue;
             }
             PTE *pte = (uintptr_t *)pa2kva((get_pa(pmd[j])));
@@ -112,6 +120,8 @@ void free_all_pages(pcb_t* pcb)
             }
             freePage(pa2kva(get_pa(pmd[j])));
         }
+        if(kernel==1)
+            continue;
         freePage(pa2kva(get_pa(pgd[i])));
     }
     freePage(pcb->pgdir);
@@ -335,6 +345,11 @@ uintptr_t alloc_limit_page_helper(uintptr_t va, uintptr_t pgdir)
             &pte[vpn0], _PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE |
                             _PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_USER);
     return pa2kva(get_pa(pte[vpn0]));
+}
+
+int get_usepages()
+{
+    return usepage;
 }
 
 uintptr_t shm_page_get(int key)

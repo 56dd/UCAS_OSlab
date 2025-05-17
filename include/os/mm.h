@@ -88,6 +88,8 @@ extern uintptr_t alloc_limit_page_helper(uintptr_t va, uintptr_t pgdir);
 extern void init_uva_alloc();
 extern alloc_info_t* swapPage();
 extern ptr_t uva_allocPage(int numPage, uintptr_t uva);
+extern get_usepages();
+extern int usepage;
 
 static inline int get_pgdir_id(uintptr_t pgdir){
     for(int i=0; i<NUM_MAX_TASK; i++){
@@ -102,6 +104,7 @@ static inline alloc_info_t* lnode2info(list_node_t* lnode){
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);
 void shm_page_dt(uintptr_t addr);
+
 
 
 

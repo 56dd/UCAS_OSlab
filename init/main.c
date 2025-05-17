@@ -41,6 +41,7 @@ void disable_tmp_map(){
         // 表项置零
         pmd[vpn1] = 0;
     }
+    pgdir[1] = 0;
 }
 static void init_jmptab(void)
 {
@@ -173,6 +174,7 @@ static void init_syscall(void)
     syscall[SYSCALL_MBOX_RECV]       =  (long (*)())do_mbox_recv;
     syscall[SYSCALL_TASKSET]         =  (long (*)())do_taskset;
     syscall[SYSCALL_THREAD_CREATE]   =  (long (*)())do_pthread_create;
+    syscall[SYSCALL_USEPAGE]         =  (long (*)())get_usepages;
 }
 /************************************************************/
 
@@ -199,6 +201,8 @@ int main()
         init_jmptab();
 
         init_uva_alloc();
+
+        init_TreeNode();
 
         // Init task information (〃'▽'〃)
         init_task_info();

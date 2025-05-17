@@ -153,7 +153,8 @@ void pcb_release(pcb_t* p){
     // 释放持有的所有锁
     release_all_lock(p->pid);
 
-    free_all_pages(p);
+    if(!p->if_thread)
+        free_all_pages(p);
 }
 void release_all_lock(pid_t pid){
     for(int i=0; i<LOCK_NUM; i++){
@@ -223,6 +224,7 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
         pcb[index].list.prev = pcb[index].list.next = NULL;
         pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
+        pcb[index].if_thread = 0;
         uint64_t user_sp_ori = user_sp;
         // 参数搬到用户栈
         user_sp -= sizeof(char*) * argc;
@@ -264,6 +266,7 @@ void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg){
     pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
     pcb[index].list.prev = pcb[index].list.next = NULL;
     pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
+    pcb[index].if_thread = 1;
     uint64_t user_sp_ori = user_sp;
     //初始化栈，改变入口地址，存储参数
     init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, start_routine, &pcb[index], arg, NULL);
@@ -272,9 +275,11 @@ void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg){
     // 进程数加一
     task_num++;
     *thread = pcb[index].pid; // 返回的pid存于指针所指示位置
+    add_child(current_running[cpu_id], &pcb[index]);
 }
 
 void do_exit(void){
+    kill_all_children(current_running[cpu_id]);
     current_running[cpu_id]->status = TASK_EXITED;
     set_satp(SATP_MODE_SV39, 0, PGDIR_PA >> NORMAL_PAGE_SHIFT);
     local_flush_tlb_all();
@@ -286,6 +291,7 @@ int do_kill(pid_t pid){
     for(int i=0; i<NUM_MAX_TASK; i++){
         if(pcb[i].status!=TASK_EXITED && pcb[i].pid==pid){
             // 修改进程状态
+            kill_all_children(&pcb[i]);
             pcb[i].status = TASK_EXITED;
 
             pcb_release(&pcb[i]);
@@ -365,6 +371,55 @@ pid_t do_taskset(int mode_p, int mask, void* pid_name){
         }
         return pid;
     }
+}
+
+void init_TreeNode(){
+    for(int i=0; i<NUM_MAX_TASK; i++){
+        // 1. 初始化 treenode 指向静态分配的 all_nodes[i]
+        pcb[i].treenode = &all_nodes[i];
+
+        // 2. 初始化 treenode 的基本字段
+        pcb[i].treenode->parent = NULL;
+        pcb[i].treenode->child_count = 0;
+        pcb[i].treenode->capacity = 4;
+
+        // 3. 初始化 children 指针数组指向 all_children[i]
+        pcb[i].treenode->children = all_children[i];
+
+        // 4. 将所有子节点指针初始化为 NULL
+        for (int j = 0; j < 4; j++) {
+            pcb[i].treenode->children[j] = NULL;
+        }
+    }
+}
+
+// 添加子节点函数（与之前一致）
+void add_child(pcb_t* parent, pcb_t* child) {
+    if (parent == NULL || child == NULL) return;
+    parent->treenode->children[parent->treenode->child_count++] = child;
+    child->treenode->parent = parent;
+}
+
+void kill_all_children(pcb_t* node) { 
+    if (node == NULL)
+        return;
+
+    // 1. 递归删除所有子节点
+    for (int i = 0; i < node->treenode->child_count; i++) {
+        pcb_t* child = node->treenode->children[i];
+        if (child != NULL) {
+            kill_all_children(child);  // 递归删除子树
+        }
+        child->status = TASK_EXITED;
+        pcb_release(child);
+    }
+
+    // 2. 清空当前节点的子节点指针
+    for (int i = 0; i < node->treenode->capacity; i++) {
+        node->treenode->children[i] = NULL;
+    }
+    node->treenode->child_count = 0;
+
 }
 
 
