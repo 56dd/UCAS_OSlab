@@ -152,5 +152,25 @@ static inline uintptr_t get_pteptr_of(uintptr_t va, uintptr_t pgdir_va){
     return (uintptr_t)(pte+vpn0);
 }
 
+static inline uintptr_t get_kva_of(uintptr_t va, uintptr_t pgdir_va)
+{
+    // TODO: [P4-task1] (todo if you need)
+    va &= VA_MASK;
+    uint64_t vpn2 =
+        va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+    uint64_t vpn1 = (vpn2 << PPN_BITS) ^
+                    (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+    uint64_t vpn0 = (vpn2 << (PPN_BITS + PPN_BITS)) ^
+                    (vpn1 << PPN_BITS) ^
+                    (va >> NORMAL_PAGE_SHIFT);
+    PTE *pgd = (PTE*)pgdir_va;
+    if (pgd[vpn2] == 0) 
+        return 0;
+    PTE *pmd = (uintptr_t *)pa2kva((get_pa(pgd[vpn2])));
+    if(pmd[vpn1] == 0)
+        return 0;
+    PTE *pte = (PTE *)pa2kva(get_pa(pmd[vpn1]));
+    return pa2kva(get_pa(pte[vpn0]));
+}
 
 #endif  // PGTABLE_H

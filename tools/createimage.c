@@ -13,8 +13,11 @@
 #define BOOT_LOADER_SIG_OFFSET 0x1fe
 #define OS_SIZE_LOC (BOOT_LOADER_SIG_OFFSET - 2)
 #define APP_INFO_ADDR_LOC (BOOT_LOADER_SIG_OFFSET - 10)
+#define SWAP_START (BOOT_LOADER_SIG_OFFSET - 14)
 #define BOOT_LOADER_SIG_1 0x55
 #define BOOT_LOADER_SIG_2 0xaa
+
+#define SD_SWAP_SIZE 131072
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
@@ -163,10 +166,12 @@ static void create_image(int nfiles, char *files[])
     }
     write_img_info(nbytes_kernel, taskinfo, tasknum, img, &phyaddr);
     printf("current phyaddr:%x\n", phyaddr);
-    fseek(img, phyaddr, SEEK_SET);
     off = NBYTES2SEC(phyaddr);
+    fseek(img, SWAP_START, SEEK_SET);
+    fwrite(&off, 4, 1, img);
+    fseek(img, phyaddr, SEEK_SET);
     printf("%x\n", off * SECTOR_SIZE);
-    write_padding(img, &phyaddr, off * SECTOR_SIZE);
+    write_padding(img, &phyaddr, (off+SD_SWAP_SIZE) * SECTOR_SIZE);
     fclose(img);
 }
 

@@ -19,6 +19,7 @@
 #include <csr.h>
 
 #define APP_INFO_ADDR_LOC 0xffffffc0502001f4
+#define SWAP_START 0xffffffc0502001f0
 
 extern void ret_from_exception();
 int task_num = 0;
@@ -26,6 +27,7 @@ int task_num = 0;
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
 
+uint64_t image_end_sec; // 镜像结束的扇区
 
 void disable_tmp_map(){
     PTE *pgdir = (PTE *)pa2kva(PGDIR_PA);
@@ -195,8 +197,13 @@ int main()
         // Init jump table provided by kernel and bios(ΦωΦ)
         init_jmptab();
 
+        init_uva_alloc();
+
         // Init task information (〃'▽'〃)
         init_task_info();
+
+        int* image_end_sec_addr = SWAP_START;
+        image_end_sec = *image_end_sec_addr;
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
