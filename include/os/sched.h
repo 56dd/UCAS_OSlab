@@ -161,6 +161,8 @@ void free_block_list(list_node_t* head);
 void release_all_lock(pid_t pid);
 
 extern pid_t do_taskset(int mode_p, int mask, void* pid_name);
+
+extern void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg);
 /************************************************************/
 
 #endif

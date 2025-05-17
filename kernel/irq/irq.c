@@ -65,7 +65,6 @@ void init_exception()
 void handle_page_fault(regs_context_t *regs, uint64_t stval, uint64_t scause){
     PTE pte = get_pteptr_of(stval, current_running[cpu_id]->pgdir);
     // 页面存在
-    
     // 页面不存在，建立映射  
     alloc_limit_page_helper(stval, current_running[cpu_id]->pgdir);
     local_flush_tlb_all();

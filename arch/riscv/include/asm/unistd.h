@@ -37,6 +37,7 @@
 #define SYSCALL_MBOX_RECV 55
 #define SYSCALL_SHM_GET 56
 #define SYSCALL_SHM_DT 57
+#define SYSCALL_THREAD_CREATE 58
 
 
 #endif

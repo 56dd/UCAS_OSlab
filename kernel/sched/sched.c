@@ -249,6 +249,31 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
     return pcb[index].pid;  //返回pid值
 }
 
+void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg){
+    int index = search_free_pcb();
+    if(index==-1)   // 进程数已满，返回
+        *thread = 0;
+    pcb[index].pid = task_num + 1; // pid 0 is for kernel
+    pcb[index].pgdir = current_running[cpu_id]->pgdir;
+    pcb[index].kernel_sp = (reg_t)(allocPage(1)+PAGE_SIZE);    //分配一页
+    uint64_t user_sp = alloc_page_helper(USER_STACK_ADDR+(pcb[index].pid-1)*PAGE_SIZE, pcb[index].pgdir) + PAGE_SIZE;
+    pcb[index].user_sp = (reg_t)(USER_STACK_ADDR+pcb[index].pid * PAGE_SIZE);       
+    pcb[index].status = TASK_READY;
+    pcb[index].cursor_x = 0;
+    pcb[index].cursor_y = 0;
+    pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
+    pcb[index].list.prev = pcb[index].list.next = NULL;
+    pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
+    uint64_t user_sp_ori = user_sp;
+    //初始化栈，改变入口地址，存储参数
+    init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, start_routine, &pcb[index], arg, NULL);
+    // 加入ready队列
+    add_node_to_q(&pcb[index].list, &ready_queue);
+    // 进程数加一
+    task_num++;
+    *thread = pcb[index].pid; // 返回的pid存于指针所指示位置
+}
+
 void do_exit(void){
     current_running[cpu_id]->status = TASK_EXITED;
     set_satp(SATP_MODE_SV39, 0, PGDIR_PA >> NORMAL_PAGE_SHIFT);
