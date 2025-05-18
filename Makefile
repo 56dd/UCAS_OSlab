@@ -2,7 +2,7 @@
 # Project Information
 # -----------------------------------------------------------------------
 
-PROJECT_IDX	= 4
+PROJECT_IDX	= 5
 
 # -----------------------------------------------------------------------
 # Host Linux Variables
@@ -54,6 +54,8 @@ QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -D $(QEMU_LOG_FILE) -d oslab
 QEMU_DEBUG_OPT  = -s -S
 QEMU_SMP_OPT	= -smp 2
+QEMU_NET_OPT    = -netdev tap,id=mytap,ifname=tap0,script=${DIR_QEMU}/etc/qemu-ifup,downscript=${DIR_QEMU}/etc/qemu-ifdown \
+                    -device e1000,netdev=mytap
 
 # -----------------------------------------------------------------------
 # UCAS-OS Entrypoints and Variables
@@ -142,16 +144,28 @@ run:
 run-smp:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_SMP_OPT)
 
+run-net:
+	-@sudo kill `sudo lsof | grep tun | awk '{print $$2}'`
+	sudo $(QEMU) $(QEMU_OPTS) $(QEMU_NET_OPT) $(QEMU_SMP_OPT)
+
 debug:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT)
 
 debug-smp:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_SMP_OPT) $(QEMU_DEBUG_OPT)
 
+debug-net:
+	-@sudo kill `sudo lsof | grep tun | awk '{print $$2}'`
+	sudo $(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_NET_OPT) $(QEMU_SMP_OPT)
+
+viewlog:
+	@if [ ! -e $(QEMU_LOG_FILE) ]; then touch $(QEMU_LOG_FILE); fi;
+	@tail -f $(QEMU_LOG_FILE)
+
 minicom:
 	sudo $(MINICOM) -D $(TTYUSB1)
 
-.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom
+.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom run-net debug-net
 
 # -----------------------------------------------------------------------
 # UCAS-OS Rules
@@ -190,6 +204,6 @@ $(ELF_CREATEIMAGE): $(SRC_CREATEIMAGE)
 	$(HOST_CC) $(SRC_CREATEIMAGE) -o $@ -ggdb -Wall
 
 image: $(ELF_CREATEIMAGE) $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
-	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F))
+	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F)) 
 
 .PHONY: image

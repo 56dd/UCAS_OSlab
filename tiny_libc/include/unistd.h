@@ -57,6 +57,10 @@ int sys_mbox_recv(int mbox_idx, void *msg, int msg_length);
 /* shmpageget/dt */
 void* sys_shmpageget(int key);
 void sys_shmpagedt(void *addr);
+
+/* net send and recv */
+int sys_net_send(void *txpacket, int length);
+int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
 /************************************************************/
 
 #endif

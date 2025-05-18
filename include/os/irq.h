@@ -75,6 +75,7 @@ extern void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scau
 extern void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause);
 extern void handle_syscall(regs_context_t *regs, uint64_t stval, uint64_t scause);
 extern void handle_page_fault(regs_context_t *regs, uint64_t stval, uint64_t scause);
+extern void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 extern void enable_interrupt(void);
 extern void disable_interrupt(void);
