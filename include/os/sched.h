@@ -33,6 +33,7 @@
 #include <os/list.h>
 
 #define NUM_MAX_TASK 16
+#define NR_CPUS 2
 
 /* used to save register infomation */
 typedef struct regs_context
@@ -68,12 +69,18 @@ typedef struct pcb
     // NOTE: this order must be preserved, which is defined in regs.h!!
     reg_t kernel_sp;
     reg_t user_sp;
+    ptr_t kernel_stack_base;
+    ptr_t user_stack_base;
 
     /* previous, next pointer */
     list_node_t list;
+    list_head wait_list;
 
     /* process id */
     pid_t pid;
+
+    /* pgdir */
+    uintptr_t pgdir;
 
     /* BLOCK | READY | RUNNING */
     task_status_t status;
@@ -85,6 +92,20 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    // 运行当前进程的cpu
+    uint64_t run_cpu_id;
+    // 绑定cpu的掩码
+    uint64_t cpu_mask;
+
+    /*P2 Task 5*/
+    int position_now;
+    int position_last;
+    bool if_fly;
+    int fly_id;
+    int time_slice;
+    int time_slice_remain;
+
+    
 } pcb_t;
 
 /* ready queue to run */
@@ -94,22 +115,54 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-extern pcb_t * volatile current_running;
+volatile pcb_t * current_running[NR_CPUS];
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
-extern const ptr_t pid0_stack;
+extern pcb_t s_pid0_pcb;
+extern const ptr_t pid0_stack; 
 
 extern void switch_to(pcb_t *prev, pcb_t *next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
+pcb_t * get_pcb_from_node(list_node_t* node);
+
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
 
+void do_set_sche_workload(int position);
+int FLY_SPEED_TABLE[16];
+int FLY_LENGTH_TABLE[16];
+int normalize_speed_table(int* speed_table, int table_p, int fly_id);
+int calculate_time_slice(int* D_table, int table_p, int fly_id);
+
 /************************************************************/
-/* Do not touch this comment. Reserved for future projects. */
+/* TODO [P3-TASK1] exec exit kill waitpid ps*/
+#ifdef S_CORE
+extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+#else
+extern pid_t do_exec(char *name, int argc, char *argv[]);
+#endif
+extern void do_exit(void);
+extern int do_kill(pid_t pid);
+extern int do_waitpid(pid_t pid);
+extern void do_process_show();
+extern void do_process_show_l();//debug用，打印log
+extern pid_t do_getpid();
+
+extern void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
+    pcb_t *pcb, int argc, char* argv[]);    
+int search_free_pcb(); 
+
+void pcb_release(pcb_t* p);
+void free_block_list(list_node_t* head);
+void release_all_lock(pid_t pid);
+
+extern pid_t do_taskset(int mode_p, int mask, void* pid_name);
+
+extern void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg);
 /************************************************************/
 
 #endif

@@ -5,6 +5,12 @@ ENTRY(_start)
 SECTIONS
 {
   . = TEXT_START;
+  /* UCAS boot stage code */
+  .text           :
+  {
+    *(.bootkernel_entry)
+    *(.bootkernel)       
+  }
   .text           :
   {
     _ftext = . ;

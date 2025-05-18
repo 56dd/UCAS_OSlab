@@ -76,4 +76,6 @@
 #define CSR_TIMEH   0xc81
 #define CSR_INSTRETH    0xc82
 
+#define CSR_MHARTID 0xf14
+
 #endif /* CSR_H */

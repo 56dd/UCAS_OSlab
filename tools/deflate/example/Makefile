@@ -1,0 +1,20 @@
+HOST_CC     = gcc
+
+DEFLATE_DIR = ..
+LIB_DIR     = $(DEFLATE_DIR)/lib
+TEST_DIR    = $(DEFLATE_DIR)/example
+
+INCLUDE_COMMON = -I$(LIB_DIR) -I$(DEFLATE_DIR)
+CFLAGS_COMMON  = -O2 $(INCLUDE_COMMON) -Wall -DFREESTANDING
+
+TEST_ELF    = test
+
+SRC_TEST    = $(TEST_DIR)/test.c
+SRC_LIB     = $(LIB_DIR)/*.c
+SRC_COMMON  = $(DEFLATE_DIR)/*.c
+
+$(TEST_ELF): $(SRC_TEST) $(SRC_LIB) $(SRC_COMMON)
+	$(HOST_CC) $(SRC_TEST) $(SRC_LIB) $(SRC_COMMON) $(CFLAGS_COMMON) -g -o $@
+
+clean: 
+	rm $(TEST_ELF)

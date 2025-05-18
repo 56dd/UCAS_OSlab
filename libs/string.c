@@ -50,7 +50,6 @@ int strncmp(const char *str1, const char *str2, uint32_t n)
     return 0;
 }
 
-
 char *strcpy(char *dest, const char *src)
 {
     char *tmp = dest;
