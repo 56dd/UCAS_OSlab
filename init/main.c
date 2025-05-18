@@ -49,6 +49,7 @@
 #include <type.h>
 #include <csr.h>
 #include <csr.h>
+#include <e1000.h>
 
 #define APP_INFO_ADDR_LOC 0xffffffc0502001f4
 #define SWAP_START 0xffffffc0502001f0
@@ -245,7 +246,7 @@ int main()
         // Read CPU frequency (｡•ᴗ-)_
         time_base = bios_read_fdt(TIMEBASE);
 
-        e1000 = (volatile uint8_t *)bios_read_fdt(EHTERNET_ADDR);
+        e1000 = (volatile uint8_t *)bios_read_fdt(ETHERNET_ADDR);
         uint64_t plic_addr = bios_read_fdt(PLIC_ADDR);
         uint32_t nr_irqs = (uint32_t)bios_read_fdt(NR_IRQS);
         printk("> [INIT] e1000: %lx, plic_addr: %lx, nr_irqs: %lx.\n", e1000, plic_addr, nr_irqs);
