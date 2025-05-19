@@ -18,7 +18,7 @@ static ptr_t kernMemCurr = FREEMEM_KERNEL;
 #define BITMAP(n) (n - KERNELMEM_START)/(8*PAGE_SIZE)
 #define BITMAP_OFFSET(n) ((n - KERNELMEM_START)/(PAGE_SIZE))%8
 
-
+static int usepages = 0;
 // 全局变量
 static uint8_t page_bitmap[TOTAL_PAGES / 8]; // 位图，每 bit 表示一页的状态
 
@@ -55,6 +55,7 @@ ptr_t allocPage(int numPage)
             assert(0);
         }
     }
+    usepages+=numPage;
     return ret;
 }
 
@@ -82,7 +83,7 @@ void freePage(ptr_t baseAddr)
 
     // 标记该页为空闲
     page_bitmap[BITMAP(baseAddr)] &= ~(1 << (BITMAP_OFFSET(baseAddr)));
-
+    usepages--;
 }
 
 void free_all_pages(pcb_t* pcb)
@@ -94,11 +95,17 @@ void free_all_pages(pcb_t* pcb)
         {
             continue;
         }
+        int kernel = 0;
         PTE *pmd = (uintptr_t *)pa2kva((get_pa(pgd[i])));
         for(int j=0;j<512;j++)
         {
-            if(pmd[j] == 0 || (pmd[j] & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) != 0)
+            if(pmd[j] == 0 )
             {
+                continue;
+            }
+            if(pmd[j] & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC) != 0)
+            {
+                kernel = 1;
                 continue;
             }
             PTE *pte = (uintptr_t *)pa2kva((get_pa(pmd[j])));
@@ -112,10 +119,16 @@ void free_all_pages(pcb_t* pcb)
             }
             freePage(pa2kva(get_pa(pmd[j])));
         }
-        freePage(pa2kva(get_pa(pgd[i])));
+        if(kernel == 0)
+            freePage(pa2kva(get_pa(pgd[i])));
     }
     freePage(pcb->pgdir);
     freePage(pcb->kernel_sp - 8);
+}
+
+int do_usepage()
+{
+    return usepages;
 }
 
 void *kmalloc(size_t size)

@@ -55,12 +55,31 @@ static void e1000_reset(void)
 static void e1000_configure_tx(void)
 {
     /* TODO: [p5-task1] Initialize tx descriptors */
+    for(int i=0; i<TXDESCS; i++){
+        tx_desc_array[i].addr = kva2pa(tx_pkt_buffer[i]);
+        tx_desc_array[i].length = 0;
+        tx_desc_array[i].cso = 0;
+        tx_desc_array[i].cmd = E1000_TXD_CMD_RS;
+        tx_desc_array[i].status = E1000_TXD_STAT_DD;    // 初始：传输已完成
+        tx_desc_array[i].css = 0;
+        tx_desc_array[i].special = 0;
+    }
 
     /* TODO: [p5-task1] Set up the Tx descriptor base address and length */
+    uint64_t tx_base_addr = kva2pa(tx_desc_array);
+    uint32_t tx_base_addr_hi = tx_base_addr>>32;
+    uint32_t tx_base_addr_lo = tx_base_addr & 0xffffffff;
+    e1000_write_reg(e1000, E1000_TDBAL, tx_base_addr_lo);
+    e1000_write_reg(e1000, E1000_TDBAH, tx_base_addr_hi);
+    e1000_write_reg(e1000, E1000_TDLEN, TXDESCS*sizeof(struct e1000_tx_desc));
 
 	/* TODO: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
+    e1000_write_reg(e1000, E1000_TDH, 0);
+    e1000_write_reg(e1000, E1000_TDT, 0);
 
     /* TODO: [p5-task1] Program the Transmit Control Register */
+    e1000_write_reg(e1000, E1000_TCTL, E1000_TCTL_EN | E1000_TCTL_PSP | E1000_TCTL_CT & 0x100 | E1000_TCTL_COLD & 0x40000);   // ct设为0x10, cold设为0x40
+    local_flush_dcache();
 }
 
 /**
@@ -105,8 +124,30 @@ void e1000_init(void)
 int e1000_transmit(void *txpacket, int length)
 {
     /* TODO: [p5-task1] Transmit one packet from txpacket */
-
-    return 0;
+    // 读描述符前刷新
+    local_flush_dcache();
+    int tail = e1000_read_reg(e1000, E1000_TDT);
+    // // 不断检查传输是否已经完成
+    // while((tx_desc_array[tail].status & E1000_TXD_STAT_DD) == 0){
+    //     local_flush_dcache();
+    // }
+    // 检查传输是否已经完成
+    if((tx_desc_array[tail].status & E1000_TXD_STAT_DD) == 0){
+        return 0;
+    }
+    tx_desc_array[tail].status = 0; // DD拉低，表示该轮传输的数据还未被DMA处理
+    char * buff = tx_pkt_buffer[tail];
+    // 更新length到descriptor
+    tx_desc_array[tail].length = length > TX_PKT_SIZE ? TX_PKT_SIZE : length;
+    // 进行数据填写并刷新
+    memcpy(buff, (char*)txpacket, tx_desc_array[tail].length);
+    // 传输了整个包，将end of package拉高
+    if(tx_desc_array[tail].length==length)
+        tx_desc_array[tail].cmd |= E1000_TXD_CMD_EOP;
+    // 软件完成待传输的数据帧填写，更新tail指针
+    e1000_write_reg(e1000, E1000_TDT, (tail+1)%TXDESCS);
+    local_flush_dcache();
+    return tx_desc_array[tail].length;
 }
 
 /**

@@ -48,8 +48,8 @@
 #include <assert.h>
 #include <type.h>
 #include <csr.h>
-#include <csr.h>
 #include <e1000.h>
+#include <os/net.h>
 
 #define APP_INFO_ADDR_LOC 0xffffffc0502001f4
 #define SWAP_START 0xffffffc0502001f0
@@ -74,6 +74,7 @@ void disable_tmp_map(){
         // 表项置零
         pmd[vpn1] = 0;
     }
+    pgdir[257] = 0;
 }
 static void init_jmptab(void)
 {
@@ -206,6 +207,8 @@ static void init_syscall(void)
     syscall[SYSCALL_MBOX_RECV]       =  (long (*)())do_mbox_recv;
     syscall[SYSCALL_TASKSET]         =  (long (*)())do_taskset;
     syscall[SYSCALL_THREAD_CREATE]   =  (long (*)())do_pthread_create;
+    syscall[SYSCALL_USEPAGE]         =  (long (*)())do_usepage;
+    syscall[SYSCALL_NET_SEND]        =  (long (*)())do_net_send;
 }
 /************************************************************/
 

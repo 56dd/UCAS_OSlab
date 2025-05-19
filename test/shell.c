@@ -149,6 +149,10 @@ int main(void)
                 printf("Error: taskset command format error!");
             }
         }
+        else if(strcmp("memory", argv[0])==0){
+            int usepage = sys_usepage();
+            printf("Use %d Pages/n",usepage);
+        }
         else{
             printf("Error: Unknown command %s\n", buff);
         }

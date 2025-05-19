@@ -60,6 +60,7 @@ extern ptr_t allocLargePage(int numPage);
 #endif
 
 // TODO [P4-task1] */
+extern int   do_usepage();
 extern void* kmalloc(size_t size);
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir);
