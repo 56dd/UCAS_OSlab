@@ -285,9 +285,9 @@ int main()
         // plic_init(plic_addr, nr_irqs);
         // printk("> [INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr, nr_irqs);
 
-        // Init network device
-        e1000_init();
-        printk("> [INIT] E1000 device initialized successfully.\n");
+        // Init network device(-_-)
+        //e1000_init();
+        //printk("> [INIT] E1000 device initialized successfully.\n");
 
 
         // Init system call table (0_0)
