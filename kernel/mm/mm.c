@@ -103,7 +103,7 @@ void free_all_pages(pcb_t* pcb)
             {
                 continue;
             }
-            if(pmd[j] & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC) != 0)
+            if((pmd[j] & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) != 0)
             {
                 kernel = 1;
                 continue;
@@ -220,6 +220,37 @@ int map_page_helper(uintptr_t va, uintptr_t pa, uintptr_t pgdir){
         set_attribute(
             &pte[vpn0], _PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE |
                             _PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_USER);
+        return 1;
+    }
+    return 0;
+}
+
+
+// 将虚地址和给定实地址的映射关系存于给定页表(内核)使用2级页表，执行成功返回1，否则返回0
+int kernel_map_page_helper(uintptr_t va, uintptr_t pa, uintptr_t pgdir){
+    va &= VA_MASK;
+    uint64_t vpn2 =
+        va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+    uint64_t vpn1 = (vpn2 << PPN_BITS) ^
+                    (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+    PTE *pgd = (PTE*)pgdir;
+    if (pgd[vpn2] == 0) {
+        // 分配一个新的三级页目录，注意需要转化为实地址！
+        set_pfn(&pgd[vpn2], kva2pa(allocPage(1)) >> NORMAL_PAGE_SHIFT);
+        set_attribute(&pgd[vpn2], _PAGE_PRESENT);
+        clear_pgdir(pa2kva(get_pa(pgd[vpn2])));
+    }
+    PTE *pmd = (uintptr_t *)pa2kva((get_pa(pgd[vpn2])));
+    if(pa==0){
+        pmd[vpn1] = 0;
+        return 1;
+    }
+    // 将对应实地址置为pa
+    else if(pmd[vpn1]==0){
+        set_pfn(&pmd[vpn1], pa >> NORMAL_PAGE_SHIFT);
+        set_attribute(
+            &pmd[vpn1], _PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE |
+                            _PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY);
         return 1;
     }
     return 0;

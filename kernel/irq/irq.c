@@ -8,6 +8,8 @@
 #include <screen.h>
 #include <os/smp.h>
 #include <os/mm.h>
+#include <plic.h>
+#include <os/net.h>
 
 #define SCAUSE_IRQ_MASK 0x8000000000000000
 handler_t irq_table[IRQC_COUNT];
@@ -37,6 +39,16 @@ void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p5-task4] external interrupt handler.
     // Note: plic_claim and plic_complete will be helpful ...
+    int id = plic_claim();  // 获取id
+    // printk("Externel intr id: %d\n", id);
+    if(id==3)   // on board
+    {
+        // 标识中断处理完毕（需要先于handle_irq进行，原因是其后续会调用block）
+        plic_complete(id);
+        net_handle_irq();
+    }
+    else
+        plic_complete(id);
 }
 
 void init_exception()
@@ -62,8 +74,8 @@ void init_exception()
     irq_table[IRQC_S_TIMER] = handle_irq_timer;
     irq_table[IRQC_M_TIMER] = handle_other;
     irq_table[IRQC_U_EXT  ] = handle_other;
-    irq_table[IRQC_S_EXT  ] = handle_other;
-    irq_table[IRQC_M_EXT  ] = handle_other;
+    irq_table[IRQC_S_EXT  ] = handle_irq_ext;
+    irq_table[IRQC_M_EXT  ] = handle_irq_ext;
 
     /* TODO: [p2-task3] set up the entrypoint of exceptions */
 }

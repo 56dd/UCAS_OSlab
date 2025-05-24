@@ -12,7 +12,7 @@ void *ioremap(unsigned long phys_addr, unsigned long size)
     // TODO: [p5-task1] map one specific physical region to virtual address
     uintptr_t va_start = io_base;
     while(size){
-        map_page_helper(io_base, phys_addr, pa2kva(PGDIR_PA));
+        kernel_map_page_helper(io_base, phys_addr, pa2kva(PGDIR_PA));
         io_base += PAGE_SIZE;
         phys_addr+= PAGE_SIZE;
         size -=PAGE_SIZE;

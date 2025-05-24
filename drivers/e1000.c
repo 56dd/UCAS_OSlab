@@ -9,8 +9,8 @@
 volatile uint8_t *e1000;  // use virtual memory address
 
 // E1000 Tx & Rx Descriptors
-static struct e1000_tx_desc tx_desc_array[TXDESCS] __attribute__((aligned(16)));
-static struct e1000_rx_desc rx_desc_array[RXDESCS] __attribute__((aligned(16)));
+struct e1000_tx_desc tx_desc_array[TXDESCS] __attribute__((aligned(16)));
+struct e1000_rx_desc rx_desc_array[RXDESCS] __attribute__((aligned(16)));
 
 // E1000 Tx & Rx packet buffer
 static char tx_pkt_buffer[TXDESCS][TX_PKT_SIZE];
@@ -88,16 +88,40 @@ static void e1000_configure_tx(void)
 static void e1000_configure_rx(void)
 {
     /* TODO: [p5-task2] Set e1000 MAC Address to RAR[0] */
+    // RA寄存器组，低位写在前
+    uint32_t ral0 = (enetaddr[3]<<24) | (enetaddr[2]<<16) | (enetaddr[1]<<8) | enetaddr[0];
+    uint32_t rah0 = E1000_RAH_AV | (enetaddr[5]<<8) | enetaddr[4];
+    e1000_write_reg_array(e1000, E1000_RA, 0, ral0);
+    e1000_write_reg_array(e1000, E1000_RA, 1, rah0);
 
     /* TODO: [p5-task2] Initialize rx descriptors */
+    for(int i=0; i<RXDESCS; i++){
+        rx_desc_array[i].addr = kva2pa(rx_pkt_buffer[i]);
+        rx_desc_array[i].length = 0;
+        rx_desc_array[i].csum = 0;
+        rx_desc_array[i].status = 0;
+        rx_desc_array[i].errors = 0;
+        rx_desc_array[i].special = 0;
+    }
 
     /* TODO: [p5-task2] Set up the Rx descriptor base address and length */
+    uint64_t rx_base_addr = kva2pa(rx_desc_array);
+    uint32_t rx_base_addr_hi = rx_base_addr>>32;
+    uint32_t rx_base_addr_lo = rx_base_addr & 0xffffffff;
+    e1000_write_reg(e1000, E1000_RDBAL, rx_base_addr_lo);
+    e1000_write_reg(e1000, E1000_RDBAH, rx_base_addr_hi);
+    e1000_write_reg(e1000, E1000_RDLEN, RXDESCS*sizeof(struct e1000_rx_desc));
 
     /* TODO: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
+    e1000_write_reg(e1000, E1000_RDH, 0);
+    e1000_write_reg(e1000, E1000_RDT, RXDESCS-1);
 
     /* TODO: [p5-task2] Program the Receive Control Register */
+    e1000_write_reg(e1000, E1000_RCTL, E1000_RCTL_EN | E1000_RCTL_BAM);   // RCTL.BSEX 为0、RCTL.BSIZE 为 0
 
     /* TODO: [p5-task4] Enable RXDMT0 Interrupt */
+    e1000_write_reg(e1000, E1000_IMS, E1000_IMS_RXDMT0);    // mask对应位为1，启用该中断
+    local_flush_dcache();
 }
 
 /**
@@ -127,10 +151,6 @@ int e1000_transmit(void *txpacket, int length)
     // 读描述符前刷新
     local_flush_dcache();
     int tail = e1000_read_reg(e1000, E1000_TDT);
-    // // 不断检查传输是否已经完成
-    // while((tx_desc_array[tail].status & E1000_TXD_STAT_DD) == 0){
-    //     local_flush_dcache();
-    // }
     // 检查传输是否已经完成
     if((tx_desc_array[tail].status & E1000_TXD_STAT_DD) == 0){
         return 0;
@@ -158,6 +178,16 @@ int e1000_transmit(void *txpacket, int length)
 int e1000_poll(void *rxbuffer)
 {
     /* TODO: [p5-task2] Receive one packet and put it into rxbuffer */
-
-    return 0;
+    local_flush_dcache();
+    int tail = (e1000_read_reg(e1000, E1000_RDT) + 1) % RXDESCS;
+    // 检查DMA是否已经接收了信息
+    if((rx_desc_array[tail].status & E1000_RXD_STAT_DD) == 0)
+        return 0;
+    // 进行数据拷贝
+    memcpy((char*)rxbuffer, rx_pkt_buffer[tail], rx_desc_array[tail].length);
+    // 软件接收数据包完毕，DD拉低
+    rx_desc_array[tail].status = 0; 
+    // 更新tail指针，让硬件获得该描述符
+    e1000_write_reg(e1000, E1000_RDT, tail);
+    return rx_desc_array[tail].length;
 }

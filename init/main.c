@@ -50,6 +50,7 @@
 #include <csr.h>
 #include <e1000.h>
 #include <os/net.h>
+#include <plic.h>
 
 #define APP_INFO_ADDR_LOC 0xffffffc0502001f4
 #define SWAP_START 0xffffffc0502001f0
@@ -74,7 +75,7 @@ void disable_tmp_map(){
         // 表项置零
         pmd[vpn1] = 0;
     }
-    pgdir[257] = 0;
+    pgdir[1] = 0;
 }
 static void init_jmptab(void)
 {
@@ -209,6 +210,7 @@ static void init_syscall(void)
     syscall[SYSCALL_THREAD_CREATE]   =  (long (*)())do_pthread_create;
     syscall[SYSCALL_USEPAGE]         =  (long (*)())do_usepage;
     syscall[SYSCALL_NET_SEND]        =  (long (*)())do_net_send;
+    syscall[SYSCALL_NET_RECV]        =  (long (*)())do_net_recv;
 }
 /************************************************************/
 
@@ -282,12 +284,12 @@ int main()
 
 
         // TODO: [p5-task4] Init plic
-        // plic_init(plic_addr, nr_irqs);
-        // printk("> [INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr, nr_irqs);
+        plic_init(plic_addr, nr_irqs);
+        printk("> [INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr, nr_irqs);
 
         // Init network device(-_-)
-        //e1000_init();
-        //printk("> [INIT] E1000 device initialized successfully.\n");
+        e1000_init();
+        printk("> [INIT] E1000 device initialized successfully.\n");
 
 
         // Init system call table (0_0)

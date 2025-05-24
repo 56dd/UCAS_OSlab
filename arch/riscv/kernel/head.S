@@ -15,6 +15,10 @@ ENTRY(_start)
   csrw CSR_SIE, zero
   csrw CSR_SIP, zero
 
+  // 可以访问用户态页表（用于处理ioremap）
+  li t0, SR_SUM
+  csrs CSR_SSTATUS, t0
+
   csrr t0, CSR_MHARTID
   bnez t0, s_start
 
