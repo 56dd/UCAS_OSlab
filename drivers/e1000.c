@@ -189,5 +189,6 @@ int e1000_poll(void *rxbuffer)
     rx_desc_array[tail].status = 0; 
     // 更新tail指针，让硬件获得该描述符
     e1000_write_reg(e1000, E1000_RDT, tail);
+    local_flush_dcache();
     return rx_desc_array[tail].length;
 }

@@ -40,15 +40,13 @@ void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause)
     // TODO: [p5-task4] external interrupt handler.
     // Note: plic_claim and plic_complete will be helpful ...
     int id = plic_claim();  // 获取id
-    // printk("Externel intr id: %d\n", id);
-    if(id==3)   // on board
+    if(id == PLIC_E1000_QEMU_IRQ || id == PLIC_E1000_PYNQ_IRQ)  
     {
-        // 标识中断处理完毕（需要先于handle_irq进行，原因是其后续会调用block）
-        plic_complete(id);
         net_handle_irq();
     }
     else
-        plic_complete(id);
+        handle_other(regs, stval, scause);
+    plic_complete(id);
 }
 
 void init_exception()
