@@ -159,8 +159,10 @@ int main(void)
 
         printf("> root@UCAS_OS: ");
         /************************************************************/
-        /* Do not touch this comment. Reserved for future projects. */
-        /************************************************************/     
+        // TODO [P6-task1]: mkfs, statfs, cd, mkdir, rmdir, ls
+
+        // TODO [P6-task2]: touch, cat, ln, ls -l, rm
+        /************************************************************/
     }
 
     return 0;

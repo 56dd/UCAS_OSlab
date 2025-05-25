@@ -43,7 +43,7 @@ void sys_move_cursor(int x, int y)
 }
 
 
-void sys_write(char *buff)
+void sys_screen_write(char *buff)
 {
     /* TODO: [p2-task1] call call_jmptab to implement sys_write */
     //call_jmptab(WRITE,(long)buff,IGNORE,IGNORE,IGNORE,IGNORE);
@@ -295,5 +295,163 @@ int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 {
     /* TODO: [p5-task2] call invoke_syscall to implement sys_net_recv */
     return invoke_syscall(SYSCALL_NET_RECV, (long)rxbuffer, (long)pkt_num, (long)pkt_lens, IGNORE, IGNORE);
+}
+
+int sys_mkfs(void)
+{
+    // TODO [P6-task1]: Implement sys_mkfs
+    return 0;  // sys_mkfs succeeds
+}
+
+int sys_statfs(void)
+{
+    // TODO [P6-task1]: Implement sys_statfs
+    return 0;  // sys_statfs succeeds
+}
+
+int sys_cd(char *path)
+{
+    // TODO [P6-task1]: Implement sys_cd
+    return 0;  // sys_cd succeeds
+}
+
+int sys_mkdir(char *path)
+{
+    // TODO [P6-task1]: Implement sys_mkdir
+    return 0;  // sys_mkdir succeeds
+}
+
+int sys_rmdir(char *path)
+{
+    // TODO [P6-task1]: Implement sys_rmdir
+    return 0;  // sys_rmdir succeeds
+}
+
+int sys_ls(char *path, int option)
+{
+    // TODO [P6-task1]: Implement sys_ls
+    // Note: argument 'option' serves for 'ls -l' in A-core
+    return 0;  // sys_ls succeeds
+}
+
+int sys_open(char *path, int mode)
+{
+    // TODO [P6-task2]: Implement sys_open
+    return 0;  // return the id of file descriptor
+}
+
+int sys_read(int fd, char *buff, int length)
+{
+    // TODO [P6-task2]: Implement sys_read
+    return 0;  // return the length of trully read data
+}
+
+int sys_write(int fd, char *buff, int length)
+{
+    // TODO [P6-task2]: Implement sys_write
+    return 0;  // return the length of trully written data
+}
+
+int sys_close(int fd)
+{
+    // TODO [P6-task2]: Implement sys_close
+    return 0;  // sys_close succeeds
+}
+
+int sys_ln(char *src_path, char *dst_path)
+{
+    // TODO [P6-task2]: Implement sys_ln
+    return 0;  // sys_ln succeeds 
+}
+
+int sys_rm(char *path)
+{
+    // TODO [P6-task2]: Implement sys_rm
+    return 0;  // sys_rm succeeds 
+}
+
+int sys_lseek(int fd, int offset, int whence)
+{
+    // TODO [P6-task2]: Implement sys_lseek
+    return 0;  // the resulting offset location from the beginning of the file
+}
+
+int sys_mkfs(void)
+{
+    // TODO [P6-task1]: Implement sys_mkfs
+    return 0;  // sys_mkfs succeeds
+}
+
+int sys_statfs(void)
+{
+    // TODO [P6-task1]: Implement sys_statfs
+    return 0;  // sys_statfs succeeds
+}
+
+int sys_cd(char *path)
+{
+    // TODO [P6-task1]: Implement sys_cd
+    return 0;  // sys_cd succeeds
+}
+
+int sys_mkdir(char *path)
+{
+    // TODO [P6-task1]: Implement sys_mkdir
+    return 0;  // sys_mkdir succeeds
+}
+
+int sys_rmdir(char *path)
+{
+    // TODO [P6-task1]: Implement sys_rmdir
+    return 0;  // sys_rmdir succeeds
+}
+
+int sys_ls(char *path, int option)
+{
+    // TODO [P6-task1]: Implement sys_ls
+    // Note: argument 'option' serves for 'ls -l' in A-core
+    return 0;  // sys_ls succeeds
+}
+
+int sys_open(char *path, int mode)
+{
+    // TODO [P6-task2]: Implement sys_open
+    return 0;  // return the id of file descriptor
+}
+
+int sys_read(int fd, char *buff, int length)
+{
+    // TODO [P6-task2]: Implement sys_read
+    return 0;  // return the length of trully read data
+}
+
+int sys_write(int fd, char *buff, int length)
+{
+    // TODO [P6-task2]: Implement sys_write
+    return 0;  // return the length of trully written data
+}
+
+int sys_close(int fd)
+{
+    // TODO [P6-task2]: Implement sys_close
+    return 0;  // sys_close succeeds
+}
+
+int sys_ln(char *src_path, char *dst_path)
+{
+    // TODO [P6-task2]: Implement sys_ln
+    return 0;  // sys_ln succeeds 
+}
+
+int sys_rm(char *path)
+{
+    // TODO [P6-task2]: Implement sys_rm
+    return 0;  // sys_rm succeeds 
+}
+
+int sys_lseek(int fd, int offset, int whence)
+{
+    // TODO [P6-task2]: Implement sys_lseek
+    return 0;  // the resulting offset location from the beginning of the file
 }
 /************************************************************/

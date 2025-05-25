@@ -7,7 +7,7 @@ typedef pid_t pthread_t;
 
 void sys_sleep(uint32_t time);
 void sys_yield(void);
-void sys_write(char *buff);
+void sys_screen_write(char *buff);
 void sys_move_cursor(int x, int y);
 void sys_reflush(void);
 long sys_get_timebase(void);
@@ -61,6 +61,21 @@ void sys_shmpagedt(void *addr);
 /* net send and recv */
 int sys_net_send(void *txpacket, int length);
 int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
+
+/* file system operations */
+int sys_mkfs(void);
+int sys_statfs(void);
+int sys_cd(char *path);
+int sys_mkdir(char *path);
+int sys_rmdir(char *path);
+int sys_ls(char *path, int option);
+int sys_open(char *path, int mode);
+int sys_read(int fd, char *buff, int length);
+int sys_write(int fd, char *buff, int length);
+int sys_close(int fd);
+int sys_ln(char *src_path, char *dst_path);
+int sys_rm(char *path);
+int sys_lseek(int fd, int offset, int whence);
 /************************************************************/
 
 #endif
