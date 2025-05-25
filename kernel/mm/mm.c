@@ -125,7 +125,6 @@ void free_all_pages(pcb_t* pcb)
         freePage(pa2kva(get_pa(pgd[i])));
     }
     freePage(pcb->pgdir);
-    freePage(pcb->kernel_sp - 8);
 }
 
 void *kmalloc(size_t size)

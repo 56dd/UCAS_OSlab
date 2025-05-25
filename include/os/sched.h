@@ -63,15 +63,14 @@ typedef enum {
 } task_status_t;
 
 // 树节点结构体（与之前一致）
-typedef struct TreeNode {
-    struct pcb_t* parent;
-    struct pcb_t** children;
+typedef struct tree_node {
+    struct tree_node* parent;
+    struct tree_node** children;
     int child_count;
-    int capacity;
-} TreeNode;
+} tree_node_t;
 
 // 静态分配所有节点空间
-TreeNode all_nodes[NUM_MAX_TASK];           // 所有 treenode 节点
+tree_node_t all_nodes[NUM_MAX_TASK];           // 所有 treenode 节点
 
 
 /* Process Control Block */
@@ -90,7 +89,7 @@ typedef struct pcb
 
     /* process id */
     pid_t pid;
-    TreeNode* treenode;
+    tree_node_t treenode;
 
     /* pgdir */
     uintptr_t pgdir;
@@ -125,7 +124,7 @@ typedef struct pcb
     
 } pcb_t;
 
-pcb_t* all_children[NUM_MAX_TASK][4];  // 每个节点最多 INIT_CHILD_CAPACITY 个子节点指针
+tree_node_t* all_children[NUM_MAX_TASK][4];  // 每个节点最多 INIT_CHILD_CAPACITY 个子节点指针
 
 /* ready queue to run */
 extern list_head ready_queue;
@@ -147,6 +146,7 @@ void do_scheduler(void);
 void do_sleep(uint32_t);
 
 pcb_t * get_pcb_from_node(list_node_t* node);
+pcb_t * get_pcb_from_treenode(tree_node_t* node);
 
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
@@ -184,8 +184,8 @@ extern pid_t do_taskset(int mode_p, int mask, void* pid_name);
 extern void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg);
 
 void init_TreeNode();
-void add_child(pcb_t* parent, pcb_t* child);
-void kill_all_children(pcb_t* parent);
+void add_child(tree_node_t* parent, tree_node_t* child);
+void kill_all_children(tree_node_t* parent);
 /************************************************************/
 
 #endif

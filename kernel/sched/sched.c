@@ -155,6 +155,8 @@ void pcb_release(pcb_t* p){
 
     if(!p->if_thread)
         free_all_pages(p);
+
+    freePage(p->kernel_sp - 8);
 }
 void release_all_lock(pid_t pid){
     for(int i=0; i<LOCK_NUM; i++){
@@ -275,11 +277,18 @@ void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg){
     // 进程数加一
     task_num++;
     *thread = pcb[index].pid; // 返回的pid存于指针所指示位置
-    add_child(current_running[cpu_id], &pcb[index]);
+    add_child(&current_running[cpu_id]->treenode, &pcb[index].treenode);
 }
 
 void do_exit(void){
-    kill_all_children(current_running[cpu_id]);
+    kill_all_children(&current_running[cpu_id]->treenode);
+    if(current_running[cpu_id]->treenode.parent!=NULL){
+        for(int j=0; j<current_running[cpu_id]->treenode.parent->child_count; j++){
+            if(current_running[cpu_id]->treenode.parent->children[j]==&current_running[cpu_id]->treenode){
+                current_running[cpu_id]->treenode.parent->children[j]=NULL;
+            }
+        }
+    }
     current_running[cpu_id]->status = TASK_EXITED;
     set_satp(SATP_MODE_SV39, 0, PGDIR_PA >> NORMAL_PAGE_SHIFT);
     local_flush_tlb_all();
@@ -291,9 +300,15 @@ int do_kill(pid_t pid){
     for(int i=0; i<NUM_MAX_TASK; i++){
         if(pcb[i].status!=TASK_EXITED && pcb[i].pid==pid){
             // 修改进程状态
-            kill_all_children(&pcb[i]);
+            kill_all_children(&pcb[i].treenode);
+            if(pcb[i].treenode.parent!=NULL){
+                for(int j=0; j<pcb[i].treenode.parent->child_count; j++){
+                    if(pcb[i].treenode.parent->children[j]==&pcb[i].treenode){
+                        pcb[i].treenode.parent->children[j]=NULL;
+                    }
+                }
+            }
             pcb[i].status = TASK_EXITED;
-
             pcb_release(&pcb[i]);
             // 返回1，表示找到对应进程且将其kill
             return 1;
@@ -376,49 +391,58 @@ pid_t do_taskset(int mode_p, int mask, void* pid_name){
 void init_TreeNode(){
     for(int i=0; i<NUM_MAX_TASK; i++){
         // 1. 初始化 treenode 指向静态分配的 all_nodes[i]
-        pcb[i].treenode = &all_nodes[i];
+        pcb[i].treenode = all_nodes[i];
 
         // 2. 初始化 treenode 的基本字段
-        pcb[i].treenode->parent = NULL;
-        pcb[i].treenode->child_count = 0;
-        pcb[i].treenode->capacity = 4;
+        pcb[i].treenode.parent = NULL;
+        pcb[i].treenode.child_count = 0;
 
         // 3. 初始化 children 指针数组指向 all_children[i]
-        pcb[i].treenode->children = all_children[i];
+        pcb[i].treenode.children = all_children[i];
 
         // 4. 将所有子节点指针初始化为 NULL
         for (int j = 0; j < 4; j++) {
-            pcb[i].treenode->children[j] = NULL;
+            pcb[i].treenode.children[j] = NULL;
         }
     }
 }
 
-// 添加子节点函数（与之前一致）
-void add_child(pcb_t* parent, pcb_t* child) {
-    if (parent == NULL || child == NULL) return;
-    parent->treenode->children[parent->treenode->child_count++] = child;
-    child->treenode->parent = parent;
+pcb_t* get_pcb_from_treenode(tree_node_t* node)
+{
+    for(int i=0;i<NUM_MAX_TASK;i++){
+        if(node == &pcb[i].treenode)
+            return &pcb[i];
+    }
+    return cpu_id ? &s_pid0_pcb : &pid0_pcb;
 }
 
-void kill_all_children(pcb_t* node) { 
+// 添加子节点函数（与之前一致）
+void add_child(tree_node_t* parent, tree_node_t* child) {
+    if (parent == NULL || child == NULL) return;
+    parent->children[parent->child_count++] = child;
+    child->parent = parent;
+}
+
+void kill_all_children(tree_node_t* node) { 
     if (node == NULL)
         return;
 
     // 1. 递归删除所有子节点
-    for (int i = 0; i < node->treenode->child_count; i++) {
-        pcb_t* child = node->treenode->children[i];
+    for (int i = 0; i < node->child_count; i++) {
+        tree_node_t* child = node->children[i];
         if (child != NULL) {
             kill_all_children(child);  // 递归删除子树
-        }
-        child->status = TASK_EXITED;
-        pcb_release(child);
+            pcb_t* p = get_pcb_from_treenode(child);
+            p->status = TASK_EXITED;
+            pcb_release(p);
+        }  
     }
 
     // 2. 清空当前节点的子节点指针
-    for (int i = 0; i < node->treenode->capacity; i++) {
-        node->treenode->children[i] = NULL;
+    for (int i = 0; i < node->child_count; i++) {
+        node->children[i] = NULL;
     }
-    node->treenode->child_count = 0;
+    node->child_count = 0;
 
 }
 
