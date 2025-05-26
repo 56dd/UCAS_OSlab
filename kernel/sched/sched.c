@@ -79,8 +79,8 @@ void do_scheduler(void)
         current_running[cpu_id]->time_slice_remain--;
     }
 */
-    printl("[scheduler] switch to %d\n",current_running[cpu_id]->pid);
-    do_process_show_l();
+    // printl("[scheduler] switch to %d\n",current_running[cpu_id]->pid);
+    //do_process_show_l();
 
     // TODO: [p2-task1] switch_to current_running[cpu_id]
     set_satp(SATP_MODE_SV39, current_running[cpu_id]->pid, kva2pa(current_running[cpu_id]->pgdir) >> NORMAL_PAGE_SHIFT);
