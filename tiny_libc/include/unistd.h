@@ -63,7 +63,7 @@ int sys_net_send(void *txpacket, int length);
 int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
 
 /* file system operations */
-int sys_mkfs(void);
+int sys_mkfs(int force_flag);
 int sys_statfs(void);
 int sys_cd(char *path);
 int sys_mkdir(char *path);

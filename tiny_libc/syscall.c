@@ -297,161 +297,85 @@ int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
     return invoke_syscall(SYSCALL_NET_RECV, (long)rxbuffer, (long)pkt_num, (long)pkt_lens, IGNORE, IGNORE);
 }
 
-int sys_mkfs(void)
+int sys_mkfs(int force_flag)
 {
     // TODO [P6-task1]: Implement sys_mkfs
-    return 0;  // sys_mkfs succeeds
+
+    return invoke_syscall(SYSCALL_FS_MKFS, (long)force_flag, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_mkfs succeeds
 }
 
 int sys_statfs(void)
 {
     // TODO [P6-task1]: Implement sys_statfs
-    return 0;  // sys_statfs succeeds
+    return invoke_syscall(SYSCALL_FS_STATFS, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_statfs succeeds
 }
 
 int sys_cd(char *path)
 {
     // TODO [P6-task1]: Implement sys_cd
-    return 0;  // sys_cd succeeds
+    return invoke_syscall(SYSCALL_FS_CD, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_cd succeeds
 }
 
 int sys_mkdir(char *path)
 {
     // TODO [P6-task1]: Implement sys_mkdir
-    return 0;  // sys_mkdir succeeds
+    return invoke_syscall(SYSCALL_FS_MKDIR, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_mkdir succeeds
 }
 
 int sys_rmdir(char *path)
 {
     // TODO [P6-task1]: Implement sys_rmdir
-    return 0;  // sys_rmdir succeeds
+    return invoke_syscall(SYSCALL_FS_RMDIR, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_rmdir succeeds
 }
 
 int sys_ls(char *path, int option)
 {
     // TODO [P6-task1]: Implement sys_ls
     // Note: argument 'option' serves for 'ls -l' in A-core
-    return 0;  // sys_ls succeeds
+    return invoke_syscall(SYSCALL_FS_LS, (long)path, (long)option, IGNORE, IGNORE, IGNORE);  // sys_ls succeeds
 }
 
 int sys_open(char *path, int mode)
 {
     // TODO [P6-task2]: Implement sys_open
-    return 0;  // return the id of file descriptor
+    return invoke_syscall(SYSCALL_FS_OPEN, (long)path, (long)mode, IGNORE, IGNORE, IGNORE);;  // return the id of file descriptor
 }
 
 int sys_read(int fd, char *buff, int length)
 {
     // TODO [P6-task2]: Implement sys_read
-    return 0;  // return the length of trully read data
+    return invoke_syscall(SYSCALL_FS_READ, (long)fd, (long)buff, (long)length, IGNORE, IGNORE);  // return the length of trully read data
 }
 
 int sys_write(int fd, char *buff, int length)
 {
     // TODO [P6-task2]: Implement sys_write
-    return 0;  // return the length of trully written data
+    return invoke_syscall(SYSCALL_FS_WRITE, (long)fd, (long)buff, (long)length, IGNORE, IGNORE);  // return the length of trully written data
 }
 
 int sys_close(int fd)
 {
     // TODO [P6-task2]: Implement sys_close
-    return 0;  // sys_close succeeds
+    return invoke_syscall(SYSCALL_FS_CLOSE, (long)fd, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_close succeeds
 }
 
 int sys_ln(char *src_path, char *dst_path)
 {
     // TODO [P6-task2]: Implement sys_ln
-    return 0;  // sys_ln succeeds 
+    return invoke_syscall(SYSCALL_FS_LN, (long)src_path, (long)dst_path, IGNORE, IGNORE, IGNORE);  // sys_ln succeeds 
 }
 
 int sys_rm(char *path)
 {
     // TODO [P6-task2]: Implement sys_rm
-    return 0;  // sys_rm succeeds 
+    return invoke_syscall(SYSCALL_FS_RM, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_rm succeeds 
 }
 
 int sys_lseek(int fd, int offset, int whence)
 {
     // TODO [P6-task2]: Implement sys_lseek
-    return 0;  // the resulting offset location from the beginning of the file
+    return invoke_syscall(SYSCALL_FS_LSEEK, (long)fd, (long)offset, (long)whence, IGNORE, IGNORE);  // the resulting offset location from the beginning of the file
 }
 
-int sys_mkfs(void)
-{
-    // TODO [P6-task1]: Implement sys_mkfs
-    return 0;  // sys_mkfs succeeds
-}
 
-int sys_statfs(void)
-{
-    // TODO [P6-task1]: Implement sys_statfs
-    return 0;  // sys_statfs succeeds
-}
-
-int sys_cd(char *path)
-{
-    // TODO [P6-task1]: Implement sys_cd
-    return 0;  // sys_cd succeeds
-}
-
-int sys_mkdir(char *path)
-{
-    // TODO [P6-task1]: Implement sys_mkdir
-    return 0;  // sys_mkdir succeeds
-}
-
-int sys_rmdir(char *path)
-{
-    // TODO [P6-task1]: Implement sys_rmdir
-    return 0;  // sys_rmdir succeeds
-}
-
-int sys_ls(char *path, int option)
-{
-    // TODO [P6-task1]: Implement sys_ls
-    // Note: argument 'option' serves for 'ls -l' in A-core
-    return 0;  // sys_ls succeeds
-}
-
-int sys_open(char *path, int mode)
-{
-    // TODO [P6-task2]: Implement sys_open
-    return 0;  // return the id of file descriptor
-}
-
-int sys_read(int fd, char *buff, int length)
-{
-    // TODO [P6-task2]: Implement sys_read
-    return 0;  // return the length of trully read data
-}
-
-int sys_write(int fd, char *buff, int length)
-{
-    // TODO [P6-task2]: Implement sys_write
-    return 0;  // return the length of trully written data
-}
-
-int sys_close(int fd)
-{
-    // TODO [P6-task2]: Implement sys_close
-    return 0;  // sys_close succeeds
-}
-
-int sys_ln(char *src_path, char *dst_path)
-{
-    // TODO [P6-task2]: Implement sys_ln
-    return 0;  // sys_ln succeeds 
-}
-
-int sys_rm(char *path)
-{
-    // TODO [P6-task2]: Implement sys_rm
-    return 0;  // sys_rm succeeds 
-}
-
-int sys_lseek(int fd, int offset, int whence)
-{
-    // TODO [P6-task2]: Implement sys_lseek
-    return 0;  // the resulting offset location from the beginning of the file
-}
 /************************************************************/

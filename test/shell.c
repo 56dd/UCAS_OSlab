@@ -45,13 +45,20 @@ int end;
 int argc;
 char argv[MAX_ARG_NUM][MAX_ARG_LEN];
 
+char * prefix = "> root@UCAS_OS:~";
+char display_cmdline[40];
+char current_dir[30];
+
+static inline void set_display_cmdline();
 int parse_args(const char *buff);
+static inline void shell_cd();                    // cd命令对应函数
 
 int main(void)
 {
     sys_move_cursor(0, SHELL_BEGIN);
+    set_display_cmdline();
     printf("------------------- COMMAND -------------------\n");
-    printf("> root@UCAS_OS: ");
+    printf(display_cmdline);
     int tmp;
 
     while (1)
@@ -153,11 +160,39 @@ int main(void)
             int usepage = sys_usepage();
             printf("Use %d Pages\n",usepage);
         }
+        else if (strcmp("mkfs", argv[0])==0) {
+            if(strcmp(argv[1], "-f")==0)
+                sys_mkfs(1);
+            else
+                sys_mkfs(0);
+        }
+        else if(strcmp("mkdir", argv[0])==0){
+            if(sys_mkdir(argv[1]))
+                printf("Make directory %s failed!\n", argv[1]);
+        }
+        else if(strcmp("rmdir", argv[0])==0){
+            sys_rmdir(argv[1]);
+        }
+        else if(strcmp("ls", argv[0])==0){
+            int ret;
+            if(strcmp(argv[1], "-l")==0)
+                ret = sys_ls(argv[2], 1);
+            else
+                ret = sys_ls(argv[1], 0);
+            if(ret)
+                printf("[LS] Failed!\n");
+        }
+        else if(strcmp("statfs", argv[0])==0){
+            sys_statfs();
+        }
+        else if(strcmp("cd", argv[0])==0){
+            shell_cd();       
+        }
         else{
             printf("Error: Unknown command %s\n", buff);
         }
 
-        printf("> root@UCAS_OS: ");
+        printf(display_cmdline);
         /************************************************************/
         // TODO [P6-task1]: mkfs, statfs, cd, mkdir, rmdir, ls
 
@@ -188,10 +223,54 @@ int parse_args(const char *buff) {
         while (*buff && !isspace(*buff) && i < MAX_ARG_LEN - 1) {
             argv[argc][i++] = *buff++;
         }
-        argv[argc][i] = '\0';  // 添加字符串结尾符
+        while(i<MAX_ARG_LEN)
+            argv[argc][i++] = '\0';  // 确保字符串结尾符
         argc++;
     }
     return argc;
 }
 
+static inline void shell_cd(){
+    // 执行不成功
+    if(sys_cd(argv[1]))
+        return;
+    int i=0;
+    while(i<strlen(argv[1])){
+        char name[10];
+        int j;
+        for(j=0; i<strlen(argv[1]); j++){
+            if(argv[1][i]=='/')
+            {
+                i++;
+                break;
+            }
+            name[j] = argv[1][i++];
+        }
+        name[j] = '\0';
+        if(strcmp(name, ".")==0)
+            continue;
+        else if(strcmp(name, "..")==0){
+            // 判断是否处于根目录
+            if(strlen(current_dir)==0)
+                continue;
+            // 后退一个目录
+            int k;
+            for(k=strlen(current_dir)-1;k>=0 && current_dir[k]!='/';k--)
+                current_dir[k]='\0';
+            if(k>=0)
+                current_dir[k]='\0';
+        }
+        else{
+            strcat(current_dir, "/");
+            strcat(current_dir, name);
+        }
+    }
+    set_display_cmdline();
+}
 
+
+static inline void set_display_cmdline(){
+    strcpy(display_cmdline, prefix);
+    strcat(display_cmdline, current_dir);
+    strcat(display_cmdline, "$ ");
+}

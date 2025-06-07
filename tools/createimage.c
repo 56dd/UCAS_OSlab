@@ -17,7 +17,7 @@
 #define BOOT_LOADER_SIG_1 0x55
 #define BOOT_LOADER_SIG_2 0xaa
 
-#define SD_SWAP_SIZE 131072
+#define SD_SWAP_SIZE 131072 * 16
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 

@@ -51,6 +51,7 @@
 #include <e1000.h>
 #include <os/net.h>
 #include <plic.h>
+#include <os/fs.h>
 
 #define APP_INFO_ADDR_LOC 0xffffffc0502001f4
 #define SWAP_START 0xffffffc0502001f0
@@ -211,6 +212,19 @@ static void init_syscall(void)
     syscall[SYSCALL_USEPAGE]         =  (long (*)())do_usepage;
     syscall[SYSCALL_NET_SEND]        =  (long (*)())do_net_send;
     syscall[SYSCALL_NET_RECV]        =  (long (*)())do_net_recv;
+    syscall[SYSCALL_FS_MKFS]         =  (long (*)())do_mkfs;
+    syscall[SYSCALL_FS_STATFS]       =  (long (*)())do_statfs;
+    syscall[SYSCALL_FS_CD]          =  (long (*)())do_cd;
+    syscall[SYSCALL_FS_MKDIR]       =  (long (*)())do_mkdir;
+    syscall[SYSCALL_FS_RMDIR]       =  (long (*)())do_rmdir;
+    syscall[SYSCALL_FS_LS]          =  (long (*)())do_ls;
+    syscall[SYSCALL_FS_OPEN]        =  (long (*)())do_open;
+    syscall[SYSCALL_FS_READ]        =  (long (*)())do_read;
+    syscall[SYSCALL_FS_WRITE]       =  (long (*)())do_write;
+    syscall[SYSCALL_FS_CLOSE]       =  (long (*)())do_close;
+    syscall[SYSCALL_FS_LN]          =  (long (*)())do_ln;
+    syscall[SYSCALL_FS_RM]          =  (long (*)())do_rm;
+    syscall[SYSCALL_FS_LSEEK]      =  (long (*)())do_lseek;
 }
 /************************************************************/
 
