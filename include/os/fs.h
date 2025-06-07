@@ -81,6 +81,12 @@ typedef struct inode {
 
 typedef struct fdesc {
     // TODO [P6-task2]: Implement the data structure of file descriptor
+    uint8_t valid;
+    uint8_t mode;
+    short ref; // reference count
+    int ino;
+    uint32_t write_ptr;
+    uint32_t read_ptr;
 } fdesc_t;
 
 /* modes of do_open */
@@ -100,6 +106,8 @@ extern int do_cd(char *path);
 extern int do_mkdir(char *path);
 extern int do_rmdir(char *path);
 extern int do_ls(char *path, int option);
+extern int do_touch(char *path);
+extern int do_cat(char *path);
 extern int do_open(char *path, int mode);
 extern int do_read(int fd, char *buff, int length);
 extern int do_write(int fd, char *buff, int length);

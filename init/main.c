@@ -218,6 +218,8 @@ static void init_syscall(void)
     syscall[SYSCALL_FS_MKDIR]       =  (long (*)())do_mkdir;
     syscall[SYSCALL_FS_RMDIR]       =  (long (*)())do_rmdir;
     syscall[SYSCALL_FS_LS]          =  (long (*)())do_ls;
+    syscall[SYSCALL_FS_TOUCH]       =  (long (*)())do_touch;
+    syscall[SYSCALL_FS_CAT]         =  (long (*)())do_cat;
     syscall[SYSCALL_FS_OPEN]        =  (long (*)())do_open;
     syscall[SYSCALL_FS_READ]        =  (long (*)())do_read;
     syscall[SYSCALL_FS_WRITE]       =  (long (*)())do_write;

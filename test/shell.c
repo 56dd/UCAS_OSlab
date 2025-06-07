@@ -188,6 +188,18 @@ int main(void)
         else if(strcmp("cd", argv[0])==0){
             shell_cd();       
         }
+        else if(strcmp("touch", argv[0])==0){
+            sys_touch(argv[1]);
+        }
+        else if(strcmp("cat", argv[0])==0){
+            sys_cat(argv[1]);
+        }
+        else if(strcmp("ln", argv[0])==0){
+            sys_ln(argv[1], argv[2]);
+        }
+        else if(strcmp("rm", argv[0])==0){
+            sys_rm(argv[1]);
+        }
         else{
             printf("Error: Unknown command %s\n", buff);
         }

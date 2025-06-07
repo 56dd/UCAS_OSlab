@@ -589,52 +589,375 @@ int do_ls(char *path, int option)
     return 0;  // do_ls succeeds
 }
 
+int do_touch(char *path)
+{
+    // TODO [P6-task2]: Implement do_touch
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    // 同名文件/目录已经存在
+    if(get_inode_from_name(current_inode, path, NULL))
+        return 1;
+    // 创建文件
+    // 1. 创建inode并写回
+    int data_blk_addr;
+    alloc_block(&data_blk_addr, 1);
+    int ino = alloc_inode();
+    inode_t *node = ino2inode(ino);
+    *node = set_inode(T_FILE, O_RDWR, ino);
+    node->direct_addrs[0] = data_blk_addr;
+    int offset = ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+    // 2.修改父目录：增加目录项
+    int start_sec = current_inode.direct_addrs[0] + current_inode.size/SECTOR_SIZE;
+    bios_sd_read(kva2pa(buffer), 1, start_sec);
+    dentry_t* de = (dentry_t*)buffer;
+    int i;
+    for(i=0; i<DPSEC; i++){
+        if(de[i].name[0]==0)
+            break;
+    }
+    strcpy(de[i].name, path);
+    de[i].ino = ino;
+    bios_sd_write(kva2pa(buffer), 1, start_sec);
+    // 3.修改父目录inode结点
+    inode_t* node_ptr = ino2inode(current_inode.ino);
+    node_ptr->size += sizeof(dentry_t);
+    offset = current_inode.ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+    return 0;  // do_touch succeeds
+}
+
+int do_cat(char *path)
+{
+    // TODO [P6-task2]: Implement do_cat
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    // 1.查找对应文件结点
+    inode_t node;
+    // 未找到该文件
+    if(parse_path(current_inode, path, &node)==0){
+        printk("[CAT] Fail to find the file!\n");
+        return -1;
+    }
+    if(node.size > BLOCK_SIZE){
+        printk("[CAT] Warning: the file is to large!\n");
+        return -1;
+    }
+    // 判断是否为文件类型
+    if(node.type!=T_FILE){
+        printk("[FOPEN] Failed!It is not a file!\n");
+        return -1;
+    }
+    // 以block为单位打印
+    for(int read_ptr = 0; read_ptr<node.size; read_ptr+=BLOCK_SIZE){
+        uint32_t read_addr =  get_data_block_addr(node, read_ptr);   
+        bios_sd_read(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, read_addr);
+        printk(buffer);
+    }
+    return 0;  // do_cat succeeds
+}
+
 
 int do_open(char *path, int mode)
 {
     // TODO [P6-task2]: Implement do_open
-
-    return 0;  // return the id of file descriptor
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    // 1.查找对应文件结点
+    inode_t node;
+    // 未找到该文件
+    if(get_inode_from_name(current_inode, path, &node)==0){
+        printk("[FOPEN] Fail to find the file!\n");
+        return -1;
+    }
+    // 判断是否为文件类型
+    if(node.type!=T_FILE){
+        printk("[FOPEN] Failed!It is not a file!\n");
+        return -1;
+    }
+    if(((node.mode & O_RDONLY)>(mode & O_RDONLY))||(node.mode & O_WRONLY)>(mode & O_WRONLY)){
+        printk("[FOPEN] Failed to access file! Mode info: %d vs %d\n", node.mode, mode);
+        return -1;
+    }
+    // 2.分配描述符
+    int fd;
+    for(fd=0; fd<NUM_FDESCS; fd++){
+        if(fdesc_array[fd].valid==0)
+            break;
+    }
+    fdesc_array[fd].valid = 1;
+    fdesc_array[fd].mode = mode;   // [TODO]这个保存的mode是谁的mode？
+    fdesc_array[fd].ref++;
+    fdesc_array[fd].read_ptr = 0;
+    fdesc_array[fd].write_ptr = 0;
+    fdesc_array[fd].ino = node.ino;
+    return fd;  // return the fd of file descriptor
 }
 
 int do_read(int fd, char *buff, int length)
 {
     // TODO [P6-task2]: Implement do_read
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    if(fd>=NUM_FDESCS || fd<0 || fdesc_array[fd].valid==0){
+        printk("[FREAD] Warning: invalid file descriptor!\n");
+        return -1;
+    }
+    // 判断文件是否可读
+    if((fdesc_array[fd].mode & O_RDONLY)==0){
+        printk("[FREAD] No right to read file!\n");
+        return -1;
+    }
+    inode_t node = *ino2inode(fdesc_array[fd].ino);
+    int len = length> MAX_FILE_SIZE - fdesc_array[fd].read_ptr ? MAX_FILE_SIZE - fdesc_array[fd].read_ptr : length;
+    // 以block为单位读取
+    for(int read_ptr = fdesc_array[fd].read_ptr; read_ptr<fdesc_array[fd].read_ptr + len;){
+        int partial_len = read_ptr % BLOCK_SIZE ? (BLOCK_SIZE - (read_ptr % BLOCK_SIZE)) : BLOCK_SIZE;
+        int tmp = fdesc_array[fd].read_ptr + len - read_ptr;
+        partial_len = partial_len > tmp ? tmp : partial_len;
+        uint32_t read_addr =  get_data_block_addr(node, read_ptr);   
+        bios_sd_read(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, read_addr);
+        memcpy(buff, buffer+(read_ptr%BLOCK_SIZE), partial_len);
+        read_ptr += partial_len;
+        buff += partial_len;
+    }
+    fdesc_array[fd].read_ptr += len;
+    // 修改inode的atime
+    inode_t *node_ptr = ino2inode(node.ino);
+    node_ptr->atime = get_timer();
+    int offset = node.ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
 
-    return 0;  // return the length of trully read data
+    return len;  // return the length of trully read data
 }
 
 int do_write(int fd, char *buff, int length)
 {
     // TODO [P6-task2]: Implement do_write
-
-    return 0;  // return the length of trully written data
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    if(fd>=NUM_FDESCS || fd<0 || fdesc_array[fd].valid==0){
+        printk("[FWRITE] Warning: invalid file descriptor!\n");
+        return -1;
+    }
+    if((fdesc_array[fd].mode & O_WRONLY)==0){
+        printk("[FWRITE] No right to write file!\n");
+        return -1;
+    }
+    inode_t node = *ino2inode(fdesc_array[fd].ino);
+    int len = (length> (MAX_FILE_SIZE - fdesc_array[fd].write_ptr)) ? (MAX_FILE_SIZE - fdesc_array[fd].write_ptr) : length;
+    // 以block为单位写
+    for(int write_ptr = fdesc_array[fd].write_ptr; write_ptr<fdesc_array[fd].write_ptr + len;){
+        int partial_len = write_ptr % BLOCK_SIZE ? (BLOCK_SIZE - (write_ptr % BLOCK_SIZE)) : BLOCK_SIZE;
+        int tmp = fdesc_array[fd].write_ptr + len - write_ptr;
+        partial_len = partial_len > tmp ? tmp : partial_len;
+        uint32_t write_addr =  get_data_block_addr(node, write_ptr);  
+        // printk("return from get_data_block_addr\n"); 
+        if(write_ptr % BLOCK_SIZE || partial_len<BLOCK_SIZE)
+            bios_sd_read(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, write_addr);
+        memcpy(buffer + (write_ptr%BLOCK_SIZE), buff, partial_len);
+        bios_sd_write(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, write_addr);
+        write_ptr += partial_len;
+        buff += partial_len;
+    }
+    fdesc_array[fd].write_ptr += len;
+    // 需要更新inode的size信息：size和mtime
+    inode_t *node_ptr = ino2inode(node.ino);
+    node_ptr->mtime = get_timer();
+    if(fdesc_array[fd].write_ptr>node.size)
+        node_ptr->size = fdesc_array[fd].write_ptr;
+    int offset = node.ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+    
+    return len;  // return the length of trully written data
 }
 
 int do_close(int fd)
 {
     // TODO [P6-task2]: Implement do_close
-
-    return 0;  // do_close succeeds
+    // 检查fd是否越界
+    if(fd>=NUM_FDESCS || fd<0){
+        printk("[FCLOSE] Warning: invalid file descriptor!\n");
+        return -1;
+    }
+    fdesc_array[fd].ref--;
+    if(fdesc_array[fd].ref==0){
+        bzero(&fdesc_array[fd], sizeof(fdesc_t));
+    }
+    return 0;  // do_fclose succeeds
 }
 
 int do_ln(char *src_path, char *dst_path)
 {
     // TODO [P6-task2]: Implement do_ln
-
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    // 1. 判断文件系统是否存在
+    if(!fs_exist()){
+        printk("[LN] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    inode_t node, tmp;
+    // 2. 判断是否存在src文件
+    if(parse_path(current_inode, src_path, &node)==0){
+        printk("[LN] Error: cannot find file %s!\n", src_path);
+        return 2;
+    }
+    if(node.type==T_DIR){
+        printk("[LN] Error: cannot link a directory!\n");
+        return 3;
+    }
+    // 3. 判断dst_path是否已经被占用
+    if(get_inode_from_name(current_inode, dst_path, &tmp)){
+        printk("[LN] Error: file %s has existed!\n", dst_path);
+        return 4;
+    }
+    // 4. 修改对应inode结点
+    inode_t *node_ptr = ino2inode(node.ino);
+    node_ptr->nlink++;
+    int offset = node.ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+    // 5. 修改父目录:创建目录项
+    int start_sec = current_inode.direct_addrs[0] + current_inode.size/SECTOR_SIZE;
+    bios_sd_read(kva2pa(buffer), 1, start_sec);
+    int i;
+    dentry_t* de = (dentry_t*)buffer;
+    for(i=0; i<DPSEC; i++){
+        if(de[i].name[0]==0)
+            break;
+    }
+    strcpy(de[i].name, dst_path);
+    de[i].ino = node.ino;
+    bios_sd_write(kva2pa(buffer), 1, start_sec);
+    // 6. 修改父目录inode结点
+    node_ptr = ino2inode(current_inode.ino);
+    node_ptr->size += sizeof(dentry_t);
+    offset = current_inode.ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
     return 0;  // do_ln succeeds 
 }
 
 int do_rm(char *path)
 {
     // TODO [P6-task2]: Implement do_rm
+    // 1. 判断文件系统是否存在
+    if(!fs_exist()){
+        printk("[RM] Warning: filesystem has not been set up!\n");
+        return 1;
+    }
+    // 2. 判断是否存在文件
+    inode_t node;
+    if(get_inode_from_name(current_inode, path, &node)==0){
+        printk("[RM] Error: No such file!\n");
+        return 2;
+    }
+    if(node.type==T_DIR){
+        printk("[RM] Error: cannot rm a directory!\n");
+        return 3;
+    }
 
-    return 0;  // do_rm succeeds 
+    // 3. 判断是否需要释放对应inode结点
+    node.nlink--;
+    if(node.nlink==0){
+        // 3.1 修改imap
+        imap[node.ino/8] &= ~(1 << (node.ino%8));
+        bios_sd_write(kva2pa(imap), INODE_MAP_SEC_NUM, FS_START_SEC + INODE_MAP_OFFSET);
+        // 3.2 删除结点内容
+        inode_t *node_ptr = ino2inode(node.ino);
+        bzero(node_ptr, sizeof(inode_t));
+        int offset = node.ino / IPSEC;
+        bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+        // 3.3 回收数据块
+        // 3.3.1.直接索引
+        for(int i=0; i<NDIRECT; i++){
+            if(node.direct_addrs[i]!=0){
+                // 清空数据块
+                bzero(buffer, BLOCK_SIZE);
+                bios_sd_write(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, node.direct_addrs[i]);
+                // 修改bmap
+                int bno = (node.direct_addrs[i] - FS_START_SEC - DATA_BLOCK_OFFSET) *SECTOR_SIZE / BLOCK_SIZE;
+                bmap[bno/8] &= ~(1 << (bno%8));
+                bios_sd_write(kva2pa(bmap), BLOCK_MAP_SEC_NUM, FS_START_SEC + BLOCK_MAP_OFFSET);
+            }
+        }
+        // 3.3.2.一级索引
+        for(int i=0; i<3; i++){
+            if(node.indirect_addrs_1st[i]!=0){
+                recycle_level_index(node.indirect_addrs_1st[i], 1);
+            }
+        }
+        // 3.3.3.二级索引
+        for(int i=0; i<2; i++){
+            if(node.indirect_addrs_2nd[i]!=0){
+                recycle_level_index(node.indirect_addrs_2nd[i], 2);
+            }
+        }
+        // 3.3.4.三级索引
+        if(node.indirect_addrs_3rd!=0){
+            recycle_level_index(node.indirect_addrs_3rd, 3);
+        }
+
+    }
+    else{
+        // 只需写回nlink域
+        int offset = node.ino/IPSEC;
+        inode_t* node_ptr = ino2inode(node.ino);
+        node_ptr->nlink = node.nlink;
+        bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+    }
+    // 4. 在父目录下删除对应目录项
+    bios_sd_read(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, current_inode.direct_addrs[0]);
+    dentry_t* de = (dentry_t*) buffer;
+    int cur;
+    for(cur=0; cur<BLOCK_SIZE/sizeof(dentry_t); cur++)
+        if(de[cur].ino == node.ino)
+            break;
+    bzero(&de[cur], sizeof(dentry_t));
+    bios_sd_write(kva2pa(buffer), BLOCK_SIZE/SECTOR_SIZE, current_inode.direct_addrs[0]);
+    // 5. 处理父目录inode的size域
+    inode_t* node_ptr = ino2inode(current_inode.ino);
+    node_ptr->size -= sizeof(dentry_t);
+    int offset = current_inode.ino / IPSEC;
+    bios_sd_write(kva2pa(buffer), 1, FS_START_SEC + INODE_OFFSET + offset);
+    return 0;  // do_rm succeeds  
 }
 
 int do_lseek(int fd, int offset, int whence)
 {
     // TODO [P6-task2]: Implement do_lseek
-
-    return 0;  // the resulting offset location from the beginning of the file
+    if(!fs_exist()){
+        printk("[MKDIR] Warning: filesystem has not been set up!\n");
+        return -1;
+    }
+    if(fdesc_array[fd].valid==0)
+        return -1;
+    if(whence==SEEK_SET){
+        fdesc_array[fd].write_ptr = fdesc_array[fd].read_ptr = offset;
+        return offset;
+    }
+    else if(whence==SEEK_CUR){
+        fdesc_array[fd].write_ptr += offset;
+        fdesc_array[fd].read_ptr += offset;
+        return fdesc_array[fd].read_ptr;    // [TODO] read和write指针不一致？
+    }
+    else if(whence==SEEK_END){
+        inode_t node = *ino2inode(fdesc_array[fd].ino);
+        fdesc_array[fd].write_ptr = fdesc_array[fd].read_ptr = node.size + offset;
+        return fdesc_array[fd].write_ptr;
+    }
+    printk("[LSEEK] Warning: unknown mode!\n");
+    return -1;  // the resulting offset location from the beginning of the file
 }
+

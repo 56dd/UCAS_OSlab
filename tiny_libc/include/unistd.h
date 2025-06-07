@@ -69,6 +69,8 @@ int sys_cd(char *path);
 int sys_mkdir(char *path);
 int sys_rmdir(char *path);
 int sys_ls(char *path, int option);
+int sys_touch(char *path);
+int sys_cat(char *path);
 int sys_open(char *path, int mode);
 int sys_read(int fd, char *buff, int length);
 int sys_write(int fd, char *buff, int length);

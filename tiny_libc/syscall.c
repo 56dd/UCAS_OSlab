@@ -335,6 +335,18 @@ int sys_ls(char *path, int option)
     return invoke_syscall(SYSCALL_FS_LS, (long)path, (long)option, IGNORE, IGNORE, IGNORE);  // sys_ls succeeds
 }
 
+int sys_touch(char *path)
+{
+    // TODO [P6-task2]: Implement sys_touch
+    return invoke_syscall(SYSCALL_FS_TOUCH, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_touch succeeds
+}
+
+int sys_cat(char *path)
+{
+    // TODO [P6-task2]: Implement sys_cat
+    return invoke_syscall(SYSCALL_FS_CAT, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);  // sys_cat succeeds
+}
+
 int sys_open(char *path, int mode)
 {
     // TODO [P6-task2]: Implement sys_open
