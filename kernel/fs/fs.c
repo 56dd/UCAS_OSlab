@@ -39,9 +39,11 @@ static inline int fs_exist(){
 
 // 返回空闲block在磁盘上的地址
 static inline int alloc_block(uint32_t* addr_array, int num){
-    int i, j, mask, cnt=0;
-    for(i=0; i<BLOCK_MAP_SEC_NUM*SECTOR_SIZE; i++){
-        for(j=0, mask=1; j<8; j++, mask<<=1){
+    static int i, j =0;
+    static int mask = 1;
+    int cnt = 0;
+    for(; i<BLOCK_MAP_SEC_NUM*SECTOR_SIZE; i++){
+        for(; j<8; j++, mask<<=1){
             if((bmap[i] & mask) == 0){
                 bmap[i] |= mask;
 
@@ -51,22 +53,25 @@ static inline int alloc_block(uint32_t* addr_array, int num){
                 bios_sd_write(kva2pa(buffer2), BLOCK_SIZE/SECTOR_SIZE, data_blk_addr);
                 addr_array[cnt] = data_blk_addr;
                 cnt++;
-                // for debug
-                printk("Allocating data block: %d/%d", cnt, num);
-                screen_move_cursor(0, current_running[cpu_id]->cursor_y);
                 // 将未使用的inode结点置为已用，改成一并写回，否则上板可能会卡住
                 if(cnt==num){
                     // 只需写回sec_num个块
                     int sec_num = CEIL_DIV(blk_index, SECTOR_SIZE);
                     sec_num = sec_num == 0 ? 1 : sec_num; // 至少写回一个sector
                     bios_sd_write(kva2pa(bmap), sec_num, FS_START_SEC + BLOCK_MAP_OFFSET);
-                    screen_move_cursor(0, current_running[cpu_id]->cursor_y);
-                    printk("                                    ");
-                    screen_move_cursor(0, current_running[cpu_id]->cursor_y);
                     return 1;
                 }
-            }
-            
+            }  
+        }
+        if(j==8){
+                j=0;
+                mask=1;
+        }
+        if(i==BLOCK_MAP_SEC_NUM*SECTOR_SIZE-1 && cnt<num){
+            // 如果已经遍历完所有的block map，说明没有空闲的block了
+            i = BLOCK_MAP_SEC_NUM*SECTOR_SIZE; // 退出循环
+            j = 0; // 重置j
+            mask = 1; // 重置mask
         }
     }
     printk("[ALLOC_BLOCK] Warning: data block has been used up!\n");
