@@ -11,7 +11,7 @@ PROJECT_IDX	= 2
 SHELL       = /bin/sh
 DISK        = /dev/sdb
 TTYUSB1     = /dev/ttyUSB1
-DIR_OSLAB   = $(HOME)/OSLab-RISC-V
+DIR_OSLAB   = $(HOME)/workspace/OSlab/OSLab-RISC-V
 DIR_QEMU    = $(DIR_OSLAB)/qemu
 DIR_UBOOT   = $(DIR_OSLAB)/u-boot
 
@@ -34,7 +34,7 @@ MINICOM         = minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-CFLAGS          = -O2 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+CFLAGS          = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds

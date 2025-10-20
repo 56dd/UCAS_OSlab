@@ -1,3 +1,4 @@
 .vscode
 build
 *.txt
+Makefile
