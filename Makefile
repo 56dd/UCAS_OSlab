@@ -11,7 +11,7 @@ PROJECT_IDX	= 2
 SHELL       = /bin/sh
 DISK        = /dev/sdb
 TTYUSB1     = /dev/ttyUSB1
-DIR_OSLAB   = $(HOME)/workspace/OSlab/OSLab-RISC-V
+DIR_OSLAB   = $(HOME)/OSLab-RISC-V
 DIR_QEMU    = $(DIR_OSLAB)/qemu
 DIR_UBOOT   = $(DIR_OSLAB)/u-boot
 
