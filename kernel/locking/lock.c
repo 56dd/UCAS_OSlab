@@ -66,7 +66,7 @@ void do_mutex_lock_acquire(int mlock_idx)
     pcb_t *prior_running = current_running;
     current_running  = get_pcb_from_node(seek_ready_node());
     current_running->status = TASK_RUNNING;
-    switch_to(prior_running->kernel_sp, current_running->kernel_sp);
+    switch_to(prior_running, current_running);
 }
 
 void do_mutex_lock_release(int mlock_idx)

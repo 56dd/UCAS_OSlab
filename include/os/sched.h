@@ -122,8 +122,8 @@ void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
 
 void do_set_sche_workload(int position);
-int FLY_SPEED_TABLE[16];
-int FLY_LENGTH_TABLE[16];
+extern int FLY_SPEED_TABLE[16];
+extern int FLY_LENGTH_TABLE[16];
 int normalize_speed_table(int* speed_table, int table_p, int fly_id);
 int calculate_time_slice(int* D_table, int table_p, int fly_id);
 

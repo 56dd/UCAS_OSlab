@@ -7,6 +7,9 @@
 #include <printk.h>
 #include <assert.h>
 
+int FLY_SPEED_TABLE[16];
+int FLY_LENGTH_TABLE[16];
+
 pcb_t pcb[NUM_MAX_TASK];
 const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
 pcb_t pid0_pcb = {
@@ -74,7 +77,7 @@ void do_scheduler(void)
     printl("pid[%d]:is going to running\n",current_running->pid);
 
     // TODO: [p2-task1] switch_to current_running
-    switch_to(prior_running->kernel_sp, current_running->kernel_sp);
+    switch_to(prior_running, current_running);
     printl("[%d] switch_to success!!!\n", current_running->pid);
     return;
 

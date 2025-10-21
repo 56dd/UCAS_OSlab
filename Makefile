@@ -24,8 +24,7 @@ CROSS_PREFIX    = riscv64-unknown-linux-gnu-
 CC              = $(CROSS_PREFIX)gcc
 AR              = $(CROSS_PREFIX)ar
 OBJDUMP         = $(CROSS_PREFIX)objdump
-#GDB             = $(CROSS_PREFIX)gdb
-GDB             = $(DIR_OSLAB)/riscv-gdb/bin/riscv64-unknown-linux-gnu-gdb
+GDB             = $(CROSS_PREFIX)gdb
 QEMU            = $(DIR_QEMU)/riscv64-softmmu/qemu-system-riscv64
 UBOOT           = $(DIR_UBOOT)/u-boot
 MINICOM         = minicom
@@ -34,7 +33,7 @@ MINICOM         = minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-CFLAGS          = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+CFLAGS          = -O2 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
