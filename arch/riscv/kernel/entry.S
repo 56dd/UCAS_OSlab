@@ -62,7 +62,7 @@
   /* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
   csrr t0, sstatus
   csrr t1, sepc
-  csrr t2, sbadaddr
+  //csrr t2, sbadaddr
   csrr t3, scause
   sd t0, OFFSET_REG_SSTATUS(sp)
   sd t1, OFFSET_REG_SEPC(sp)
@@ -158,45 +158,49 @@ ENTRY(switch_to)
 
   /* TODO: [p2-task1] save all callee save registers on kernel stack,
    * see the definition of `struct switchto_context` in sched.h*/
+  sd sp, PCB_KERNEL_SP(a0)
 
   // # save switch_to_context regs
-  sd ra, SWITCH_TO_RA(a0)
-  sd sp, SWITCH_TO_SP(a0) 
-  sd s0, SWITCH_TO_S0(a0)
-  sd s1, SWITCH_TO_S1(a0)
-  sd s2, SWITCH_TO_S2(a0)
-  sd s3, SWITCH_TO_S3(a0)
-  sd s4, SWITCH_TO_S4(a0)
-  sd s5, SWITCH_TO_S5(a0)
-  sd s6, SWITCH_TO_S6(a0)
-  sd s7, SWITCH_TO_S7(a0)
-  sd s8, SWITCH_TO_S8(a0)
-  sd s9, SWITCH_TO_S9(a0)
-  sd s10, SWITCH_TO_S10(a0)
-  sd s11, SWITCH_TO_S11(a0)
+  sd ra, SWITCH_TO_RA(sp)
+  sd sp, SWITCH_TO_SP(sp) 
+  sd s0, SWITCH_TO_S0(sp)
+  sd s1, SWITCH_TO_S1(sp)
+  sd s2, SWITCH_TO_S2(sp)
+  sd s3, SWITCH_TO_S3(sp)
+  sd s4, SWITCH_TO_S4(sp)
+  sd s5, SWITCH_TO_S5(sp)
+  sd s6, SWITCH_TO_S6(sp)
+  sd s7, SWITCH_TO_S7(sp)
+  sd s8, SWITCH_TO_S8(sp)
+  sd s9, SWITCH_TO_S9(sp)
+  sd s10, SWITCH_TO_S10(sp)
+  sd s11, SWITCH_TO_S11(sp)
 
   /* TODO: [p2-task1] restore all callee save registers from kernel stack,
    * see the definition of `struct switchto_context` in sched.h*/
    # switch current running 
+  addi tp, a1, 0 
+  ld sp, PCB_KERNEL_SP(a1)  # sp is the kernel sp of next task
   
   # restore switch_to_context regs
-  ld ra, SWITCH_TO_RA(a1)
-  ld sp, SWITCH_TO_SP(a1)   # restore stack
-  ld s0, SWITCH_TO_S0(a1)
-  ld s1, SWITCH_TO_S1(a1)
-  ld s2, SWITCH_TO_S2(a1)
-  ld s3, SWITCH_TO_S3(a1)
-  ld s4, SWITCH_TO_S4(a1)
-  ld s5, SWITCH_TO_S5(a1)
-  ld s6, SWITCH_TO_S6(a1)
-  ld s7, SWITCH_TO_S7(a1)
-  ld s8, SWITCH_TO_S8(a1)
-  ld s9, SWITCH_TO_S9(a1)
-  ld s10, SWITCH_TO_S10(a1)
-  ld s11, SWITCH_TO_S11(a1)
+  ld ra, SWITCH_TO_RA(sp)
+  ld sp, SWITCH_TO_SP(sp)   # restore stack
+  ld s0, SWITCH_TO_S0(sp)
+  ld s1, SWITCH_TO_S1(sp)
+  ld s2, SWITCH_TO_S2(sp)
+  ld s3, SWITCH_TO_S3(sp)
+  ld s4, SWITCH_TO_S4(sp)
+  ld s5, SWITCH_TO_S5(sp)
+  ld s6, SWITCH_TO_S6(sp)
+  ld s7, SWITCH_TO_S7(sp)
+  ld s8, SWITCH_TO_S8(sp)
+  ld s9, SWITCH_TO_S9(sp)
+  ld s10, SWITCH_TO_S10(sp)
+  ld s11, SWITCH_TO_S11(sp)
 
 
   addi sp, sp, SWITCH_TO_SIZE
+  sd sp, PCB_KERNEL_SP(a1)  # revise the kernel sp, write back to pcb
   jr ra
 ENDPROC(switch_to)
 
@@ -245,7 +249,7 @@ ENTRY(ret_from_exception)
 
   csrw sstatus, t3
   csrw sepc, t4
-  csrw sbadaddr, t5
+  //csrw sbadaddr, t5
   csrw scause, t6
 
   ld t3, OFFSET_REG_T3(sp)

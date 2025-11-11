@@ -16,6 +16,7 @@ int sys_mutex_init(int key);
 void sys_mutex_acquire(int mutex_idx);
 void sys_mutex_release(int mutex_idx);
 void sys_set_sche_workload(int position);
+void sys_clear(void);
 
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
@@ -53,5 +54,7 @@ void sys_mbox_close(int mbox_id);
 int sys_mbox_send(int mbox_idx, void *msg, int msg_length);
 int sys_mbox_recv(int mbox_idx, void *msg, int msg_length);
 /************************************************************/
+
+pid_t sys_taskset(int mode_p, int mask, void* pid_name);
 
 #endif

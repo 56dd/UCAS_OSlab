@@ -26,6 +26,11 @@ int task_num = 0;
 task_info_t tasks[TASK_MAXNUM];
 
 
+uint64_t cpu_id;
+uint64_t sched_cpu_id;
+uint64_t screen_cpu_id;
+uint64_t bios_cpu_id;
+uint64_t mtux_cpu_id;
 static void init_jmptab(void)
 {
     volatile long (*(*jmptab))() = (volatile long (*(*))())KERNEL_JMPTAB_BASE;

@@ -11,6 +11,10 @@
 #include <assert.h>
 #include <os/smp.h>
 
+int FLY_SPEED_TABLE[16];
+int FLY_LENGTH_TABLE[16];
+volatile pcb_t *current_running[NR_CPUS];
+
 pcb_t pcb[NUM_MAX_TASK];
 const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
 pcb_t pid0_pcb = {
@@ -81,7 +85,7 @@ void do_scheduler(void)
     do_process_show_l();
 
     // TODO: [p2-task1] switch_to current_running[sched_cpu_id]
-    switch_to(prior_running->kernel_sp, current_running[sched_cpu_id]->kernel_sp);
+    switch_to(prior_running, current_running[sched_cpu_id]);
     return;
 
 }
