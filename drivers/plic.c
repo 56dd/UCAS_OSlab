@@ -23,6 +23,8 @@
 
 #include <plic.h>
 
+struct plic_handler plic_handlers;
+
 static void *plic_regs;
 
 static void plic_toggle(struct plic_handler *handler, int hwirq, int enable)

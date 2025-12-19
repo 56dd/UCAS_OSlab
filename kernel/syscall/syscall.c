@@ -1,6 +1,6 @@
 #include <sys/syscall.h>
 
-long (*syscall[NUM_SYSCALLS])();
+syscall_fn_t syscall[NUM_SYSCALLS];
 
 void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 {

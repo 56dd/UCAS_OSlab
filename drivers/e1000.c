@@ -56,7 +56,7 @@ static void e1000_configure_tx(void)
 {
     /* TODO: [p5-task1] Initialize tx descriptors */
     for(int i=0; i<TXDESCS; i++){
-        tx_desc_array[i].addr = kva2pa(tx_pkt_buffer[i]);
+        tx_desc_array[i].addr = kva2pa((uintptr_t)tx_pkt_buffer[i]);
         tx_desc_array[i].length = 0;
         tx_desc_array[i].cso = 0;
         tx_desc_array[i].cmd = E1000_TXD_CMD_RS;
@@ -66,7 +66,7 @@ static void e1000_configure_tx(void)
     }
 
     /* TODO: [p5-task1] Set up the Tx descriptor base address and length */
-    uint64_t tx_base_addr = kva2pa(tx_desc_array);
+    uint64_t tx_base_addr = kva2pa((uintptr_t)tx_desc_array);
     uint32_t tx_base_addr_hi = tx_base_addr>>32;
     uint32_t tx_base_addr_lo = tx_base_addr & 0xffffffff;
     e1000_write_reg(e1000, E1000_TDBAL, tx_base_addr_lo);
@@ -96,7 +96,7 @@ static void e1000_configure_rx(void)
 
     /* TODO: [p5-task2] Initialize rx descriptors */
     for(int i=0; i<RXDESCS; i++){
-        rx_desc_array[i].addr = kva2pa(rx_pkt_buffer[i]);
+        rx_desc_array[i].addr = kva2pa((uintptr_t)rx_pkt_buffer[i]);
         rx_desc_array[i].length = 0;
         rx_desc_array[i].csum = 0;
         rx_desc_array[i].status = 0;
@@ -105,7 +105,7 @@ static void e1000_configure_rx(void)
     }
 
     /* TODO: [p5-task2] Set up the Rx descriptor base address and length */
-    uint64_t rx_base_addr = kva2pa(rx_desc_array);
+    uint64_t rx_base_addr = kva2pa((uintptr_t)rx_desc_array);
     uint32_t rx_base_addr_hi = rx_base_addr>>32;
     uint32_t rx_base_addr_lo = rx_base_addr & 0xffffffff;
     e1000_write_reg(e1000, E1000_RDBAL, rx_base_addr_lo);
@@ -160,7 +160,7 @@ int e1000_transmit(void *txpacket, int length)
     // 更新length到descriptor
     tx_desc_array[tail].length = length > TX_PKT_SIZE ? TX_PKT_SIZE : length;
     // 进行数据填写并刷新
-    memcpy(buff, (char*)txpacket, tx_desc_array[tail].length);
+    memcpy((uint8_t *)buff, (const uint8_t *)txpacket, tx_desc_array[tail].length);
     // 传输了整个包，将end of package拉高
     if(tx_desc_array[tail].length==length)
         tx_desc_array[tail].cmd |= E1000_TXD_CMD_EOP;
@@ -184,7 +184,7 @@ int e1000_poll(void *rxbuffer)
     if((rx_desc_array[tail].status & E1000_RXD_STAT_DD) == 0)
         return 0;
     // 进行数据拷贝
-    memcpy((char*)rxbuffer, rx_pkt_buffer[tail], rx_desc_array[tail].length);
+    memcpy((uint8_t *)rxbuffer, (const uint8_t *)rx_pkt_buffer[tail], rx_desc_array[tail].length);
     // 软件接收数据包完毕，DD拉低
     rx_desc_array[tail].status = 0; 
     // 更新tail指针，让硬件获得该描述符

@@ -6,6 +6,11 @@
 #include <printk.h>
 #include <os/smp.h>
 
+mutex_lock_t mlocks[LOCK_NUM];
+barrier_t barrs[BARRIER_NUM];
+condition_t conds[CONDITION_NUM];
+mailbox_t mbox[MBOX_NUM];
+
 int lock_used_num = 0;
 void init_locks(void)
 {
@@ -26,13 +31,13 @@ void spin_lock_init(spin_lock_t *lock)
 int spin_lock_try_acquire(spin_lock_t *lock)
 {
     /* TODO: [p2-task2] try to acquire spin lock */
-    return (atomic_swap(LOCKED, &lock->status)==UNLOCKED);
+    return (atomic_swap(LOCKED, (ptr_t)&lock->status) == UNLOCKED);
 }
 
 void spin_lock_acquire(spin_lock_t *lock)
 {
     /* TODO: [p2-task2] acquire spin lock */
-    while(atomic_swap(LOCKED, &lock->status)==LOCKED);
+    while (atomic_swap(LOCKED, (ptr_t)&lock->status) == LOCKED);
 }
 
 void spin_lock_release(spin_lock_t *lock)

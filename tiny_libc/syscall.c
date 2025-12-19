@@ -282,7 +282,7 @@ void sys_shmpagedt(void *addr)
 
 pid_t sys_pthread_create(pthread_t *thread, void (*start_routine)(void*), void *arg)
 {
-    invoke_syscall(SYSCALL_THREAD_CREATE, thread, start_routine, arg, 0, 0);
+    return invoke_syscall(SYSCALL_THREAD_CREATE, (long)thread, (long)start_routine, (long)arg, 0, 0);
 }
 
 int sys_net_send(void *txpacket, int length)

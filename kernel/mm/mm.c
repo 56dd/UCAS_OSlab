@@ -141,7 +141,7 @@ void *kmalloc(size_t size)
 void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir)
 {
     // TODO [P4-task1] share_pgtable:
-    memcpy(dest_pgdir, src_pgdir, PAGE_SIZE);
+    memcpy((uint8_t *)dest_pgdir, (const uint8_t *)src_pgdir, PAGE_SIZE);
 }
 
 /* allocate physical page for `va`, mapping it into `pgdir`,
@@ -262,6 +262,8 @@ int kernel_map_page_helper(uintptr_t va, uintptr_t pa, uintptr_t pgdir){
 LIST_HEAD(in_mem_list);
 LIST_HEAD(swap_out_list);
 LIST_HEAD(free_list);
+
+alloc_info_t alloc_info[USER_PAGE_MAX_NUM];
 
 uintptr_t do_uva2pa(uintptr_t uva){
     return kva2pa(get_kva_of(uva, current_running[cpu_id]->pgdir));

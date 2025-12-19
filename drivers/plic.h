@@ -8,7 +8,9 @@ struct plic_handler {
 	bool		present;
 	void		*hart_base;
 	void		*enable_base;
-} plic_handlers;
+};
+
+extern struct plic_handler plic_handlers;
 
 #define PLIC_E1000_PYNQ_IRQ 3
 #define PLIC_E1000_QEMU_IRQ 33

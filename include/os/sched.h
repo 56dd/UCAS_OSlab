@@ -115,7 +115,7 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-volatile pcb_t * current_running[NR_CPUS];
+extern volatile pcb_t *current_running[NR_CPUS];
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
@@ -133,8 +133,8 @@ void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
 
 void do_set_sche_workload(int position);
-int FLY_SPEED_TABLE[16];
-int FLY_LENGTH_TABLE[16];
+extern int FLY_SPEED_TABLE[16];
+extern int FLY_LENGTH_TABLE[16];
 int normalize_speed_table(int* speed_table, int table_p, int fly_id);
 int calculate_time_slice(int* D_table, int table_p, int fly_id);
 
@@ -153,7 +153,7 @@ extern void do_process_show_l();//debug用，打印log
 extern pid_t do_getpid();
 
 extern void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
-    pcb_t *pcb, int argc, char* argv[]);    
+    pcb_t *pcb, reg_t arg0, reg_t arg1);
 int search_free_pcb(); 
 
 void pcb_release(pcb_t* p);

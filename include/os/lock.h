@@ -55,7 +55,7 @@ typedef struct mutex_lock
     int pid;
 } mutex_lock_t;
 
-mutex_lock_t mlocks[LOCK_NUM];
+extern mutex_lock_t mlocks[LOCK_NUM];
 extern int lock_used_num;
 
 void init_locks(void);
@@ -81,7 +81,7 @@ typedef struct barrier
 } barrier_t;
 
 #define BARRIER_NUM 16
-barrier_t barrs[BARRIER_NUM];
+extern barrier_t barrs[BARRIER_NUM];
 
 void init_barriers(void);
 int do_barrier_init(int key, int goal);
@@ -97,7 +97,7 @@ typedef struct condition
 } condition_t;
 
 #define CONDITION_NUM 16
-condition_t conds[CONDITION_NUM];
+extern condition_t conds[CONDITION_NUM];
 
 void init_conditions(void);
 int do_condition_init(int key);
@@ -136,7 +136,7 @@ typedef struct mailbox
 } mailbox_t;
 
 #define MBOX_NUM 16
-mailbox_t mbox[MBOX_NUM];
+extern mailbox_t mbox[MBOX_NUM];
 void init_mbox();
 int do_mbox_open(char *name);
 void do_mbox_close(int mbox_idx);

@@ -64,6 +64,7 @@ extern int   do_usepage();
 extern void* kmalloc(size_t size);
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir);
+extern int kernel_map_page_helper(uintptr_t va, uintptr_t pa, uintptr_t pgdir);
 
 // TODO [P4-task3] swap page*/
 //限制用户可使用的物理空间
@@ -81,7 +82,7 @@ typedef struct{
     int on_disk_sec;  // 若被换出，其在磁盘中的位置
     int pgdir_id;
 }alloc_info_t;  // 记录供用户使用的内核虚地址分配的信息
-alloc_info_t alloc_info[USER_PAGE_MAX_NUM];
+extern alloc_info_t alloc_info[USER_PAGE_MAX_NUM];
 extern list_head in_mem_list;
 extern list_head swap_out_list;
 extern list_head free_list;

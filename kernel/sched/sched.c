@@ -32,6 +32,10 @@ pcb_t s_pid0_pcb = {
 LIST_HEAD(ready_queue);
 LIST_HEAD(sleep_queue);
 
+volatile pcb_t *current_running[NR_CPUS];
+int FLY_SPEED_TABLE[16];
+int FLY_LENGTH_TABLE[16];
+
 /* global process id */
 pid_t process_id = 1;
 int fly_num = 0;
@@ -240,7 +244,7 @@ pid_t do_exec(char *name, int argc, char *argv[]){  //创建进程，不成功�
         pcb[index].user_sp -= (user_sp_ori - user_sp);
         //初始化栈，改变入口地址，存储参数
         
-        init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, entry_point, &pcb[index], argc, argv_ptr);
+        init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, entry_point, &pcb[index], (reg_t)argc, (reg_t)argv_ptr);
         // 加入ready队列
         add_node_to_q(&pcb[index].list, &ready_queue);
         // 进程数加一
@@ -266,7 +270,7 @@ void do_pthread_create(pid_t *thread, void (*start_routine)(void*), void *arg){
     pcb[index].cpu_mask = current_running[cpu_id]->cpu_mask;
     uint64_t user_sp_ori = user_sp;
     //初始化栈，改变入口地址，存储参数
-    init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, start_routine, &pcb[index], arg, NULL);
+    init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp, (ptr_t)start_routine, &pcb[index], (reg_t)arg, 0);
     // 加入ready队列
     add_node_to_q(&pcb[index].list, &ready_queue);
     // 进程数加一

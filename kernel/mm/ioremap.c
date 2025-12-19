@@ -18,14 +18,14 @@ void *ioremap(unsigned long phys_addr, unsigned long size)
         size -=PAGE_SIZE;
     }
     local_flush_tlb_all();
-    return va_start;
+    return (void *)va_start;
 }
 
 void iounmap(void *io_addr)
 {
     // TODO: [p5-task1] a very naive iounmap() is OK
     // maybe no one would call this function?
-    PTE* pte = get_pteptr_of(io_addr, current_running[cpu_id]->pgdir);
+    PTE *pte = (PTE *)get_pteptr_of((uintptr_t)io_addr, current_running[cpu_id]->pgdir);
     if(pte!=0)
         *pte = 0;
 }

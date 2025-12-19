@@ -36,10 +36,12 @@ typedef int BOOL;
 	#define FALSE 	0
 #endif
 
+#if !defined(__cplusplus) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 202311L))
 typedef int bool;
 #ifndef true
     #define true   1
     #define false  0
+#endif
 #endif
 
 typedef unsigned __attribute__((__mode__(QI))) int8_t;

@@ -42,6 +42,7 @@
 #include <os/mm.h>
 #include <os/time.h>
 #include <os/smp.h>
+#include <os/ioremap.h>
 #include <sys/syscall.h>
 #include <screen.h>
 #include <printk.h>
@@ -106,7 +107,7 @@ static void init_task_info()
 {
     // TODO: [p1-task4] Init 'tasks' array via reading app-info sector
     // NOTE: You need to get some related arguments from bootblock first
-    int * app_info_ptr = APP_INFO_ADDR_LOC;
+    int *app_info_ptr = (int *)(uintptr_t)APP_INFO_ADDR_LOC;
     int app_info_loc, app_info_size;
     app_info_loc = app_info_ptr[0];
     app_info_size = app_info_ptr[1];
@@ -123,7 +124,7 @@ static void init_task_info()
 /************************************************************/
 void init_pcb_stack(
     ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
-    pcb_t *pcb, int argc, char* argv[])
+    pcb_t *pcb, reg_t arg0, reg_t arg1)
 {
      /* TODO: [p2-task3] initialization of registers on kernel stack
       * HINT: sp, ra, sepc, sstatus
@@ -137,8 +138,8 @@ void init_pcb_stack(
     pt_regs->regs[4] = (uint64_t)pcb;                             // tp
     pt_regs->sstatus = SR_SPIE | SR_SUM;  // SPIE set to 1
     pt_regs->sepc = (uint64_t)entry_point;
-    pt_regs->regs[10] = (reg_t)argc;                     // a0 = argc
-    pt_regs->regs[11] = (reg_t)argv;                     // a1 = argv
+    pt_regs->regs[10] = arg0;                     // a0
+    pt_regs->regs[11] = arg1;                     // a1
 
     /* TODO: [p2-task1] set sp to simulate just returning from switch_to
      * NOTE: you should prepare a stack, and push some values to
@@ -174,43 +175,43 @@ static void init_pcb(void)
 static void init_syscall(void)
 {
     // TODO: [p2-task3] initialize system call table.
-    syscall[SYSCALL_SLEEP]          = (long (*)())do_sleep;
-    syscall[SYSCALL_YIELD]          = (long (*)())do_scheduler;
-    syscall[SYSCALL_WRITE]          = (long (*)())screen_write;
-    syscall[SYSCALL_CURSOR]         = (long (*)())screen_move_cursor;
-    syscall[SYSCALL_REFLUSH]        = (long (*)())screen_reflush;
-    syscall[SYSCALL_GET_TIMEBASE]   = (long (*)())get_time_base;
-    syscall[SYSCALL_GET_TICK]       = (long (*)())get_ticks;
-    syscall[SYSCALL_LOCK_INIT]      = (long (*)())do_mutex_lock_init;
-    syscall[SYSCALL_LOCK_ACQ]       = (long (*)())do_mutex_lock_acquire;
-    syscall[SYSCALL_LOCK_RELEASE]   = (long (*)())do_mutex_lock_release;
-    syscall[SYSCALL_SET_SCHE_WORKLOAD] = (long (*)())do_set_sche_workload;
-    syscall[SYSCALL_GETPID]         = (long (*)())do_getpid;
-    syscall[SYSCALL_KILL]           = (long (*)())do_kill;
-    syscall[SYSCALL_PS]             = (long (*)())do_process_show;
-    syscall[SYSCALL_WAITPID]        = (long (*)())do_waitpid;
-    syscall[SYSCALL_EXEC]           = (long (*)())do_exec;
-    syscall[SYSCALL_EXIT]           = (long (*)())do_exit;
-    syscall[SYSCALL_READCH]         = (long (*)())bios_getchar;
-    syscall[SYSCALL_CLEAR]          = (long (*)())screen_clear;
-    syscall[SYSCALL_WRITECH]          = (long (*)())screen_write_ch;
-    syscall[SYSCALL_BARR_INIT]        =  (long (*)())do_barrier_init;
-    syscall[SYSCALL_BARR_WAIT]        =  (long (*)())do_barrier_wait;
-    syscall[SYSCALL_BARR_DESTROY]     =  (long (*)())do_barrier_destroy;
-    syscall[SYSCALL_COND_INIT]       =  (long (*)())do_condition_init;
-    syscall[SYSCALL_COND_WAIT]       =  (long (*)())do_condition_wait;
-    syscall[SYSCALL_COND_SIGNAL]     =  (long (*)())do_condition_signal;
-    syscall[SYSCALL_COND_BROADCAST]  =  (long (*)())do_condition_broadcast;
-    syscall[SYSCALL_COND_DESTROY]    =  (long (*)())do_condition_destroy;
-    syscall[SYSCALL_MBOX_OPEN]       =  (long (*)())do_mbox_open;
-    syscall[SYSCALL_MBOX_CLOSE]      =  (long (*)())do_mbox_close;
-    syscall[SYSCALL_MBOX_SEND]       =  (long (*)())do_mbox_send;
-    syscall[SYSCALL_MBOX_RECV]       =  (long (*)())do_mbox_recv;
-    syscall[SYSCALL_TASKSET]         =  (long (*)())do_taskset;
-    syscall[SYSCALL_THREAD_CREATE]   =  (long (*)())do_pthread_create;
-    syscall[SYSCALL_USEPAGE]         =  (long (*)())do_usepage;
-    syscall[SYSCALL_NET_SEND]        =  (long (*)())do_net_send;
-    syscall[SYSCALL_NET_RECV]        =  (long (*)())do_net_recv;
+    syscall[SYSCALL_SLEEP]          = (syscall_fn_t)do_sleep;
+    syscall[SYSCALL_YIELD]          = (syscall_fn_t)do_scheduler;
+    syscall[SYSCALL_WRITE]          = (syscall_fn_t)screen_write;
+    syscall[SYSCALL_CURSOR]         = (syscall_fn_t)screen_move_cursor;
+    syscall[SYSCALL_REFLUSH]        = (syscall_fn_t)screen_reflush;
+    syscall[SYSCALL_GET_TIMEBASE]   = (syscall_fn_t)get_time_base;
+    syscall[SYSCALL_GET_TICK]       = (syscall_fn_t)get_ticks;
+    syscall[SYSCALL_LOCK_INIT]      = (syscall_fn_t)do_mutex_lock_init;
+    syscall[SYSCALL_LOCK_ACQ]       = (syscall_fn_t)do_mutex_lock_acquire;
+    syscall[SYSCALL_LOCK_RELEASE]   = (syscall_fn_t)do_mutex_lock_release;
+    syscall[SYSCALL_SET_SCHE_WORKLOAD] = (syscall_fn_t)do_set_sche_workload;
+    syscall[SYSCALL_GETPID]         = (syscall_fn_t)do_getpid;
+    syscall[SYSCALL_KILL]           = (syscall_fn_t)do_kill;
+    syscall[SYSCALL_PS]             = (syscall_fn_t)do_process_show;
+    syscall[SYSCALL_WAITPID]        = (syscall_fn_t)do_waitpid;
+    syscall[SYSCALL_EXEC]           = (syscall_fn_t)do_exec;
+    syscall[SYSCALL_EXIT]           = (syscall_fn_t)do_exit;
+    syscall[SYSCALL_READCH]         = (syscall_fn_t)bios_getchar;
+    syscall[SYSCALL_CLEAR]          = (syscall_fn_t)screen_clear;
+    syscall[SYSCALL_WRITECH]          = (syscall_fn_t)screen_write_ch;
+    syscall[SYSCALL_BARR_INIT]        =  (syscall_fn_t)do_barrier_init;
+    syscall[SYSCALL_BARR_WAIT]        =  (syscall_fn_t)do_barrier_wait;
+    syscall[SYSCALL_BARR_DESTROY]     =  (syscall_fn_t)do_barrier_destroy;
+    syscall[SYSCALL_COND_INIT]       =  (syscall_fn_t)do_condition_init;
+    syscall[SYSCALL_COND_WAIT]       =  (syscall_fn_t)do_condition_wait;
+    syscall[SYSCALL_COND_SIGNAL]     =  (syscall_fn_t)do_condition_signal;
+    syscall[SYSCALL_COND_BROADCAST]  =  (syscall_fn_t)do_condition_broadcast;
+    syscall[SYSCALL_COND_DESTROY]    =  (syscall_fn_t)do_condition_destroy;
+    syscall[SYSCALL_MBOX_OPEN]       =  (syscall_fn_t)do_mbox_open;
+    syscall[SYSCALL_MBOX_CLOSE]      =  (syscall_fn_t)do_mbox_close;
+    syscall[SYSCALL_MBOX_SEND]       =  (syscall_fn_t)do_mbox_send;
+    syscall[SYSCALL_MBOX_RECV]       =  (syscall_fn_t)do_mbox_recv;
+    syscall[SYSCALL_TASKSET]         =  (syscall_fn_t)do_taskset;
+    syscall[SYSCALL_THREAD_CREATE]   =  (syscall_fn_t)do_pthread_create;
+    syscall[SYSCALL_USEPAGE]         =  (syscall_fn_t)do_usepage;
+    syscall[SYSCALL_NET_SEND]        =  (syscall_fn_t)do_net_send;
+    syscall[SYSCALL_NET_RECV]        =  (syscall_fn_t)do_net_recv;
 }
 /************************************************************/
 
@@ -241,7 +242,7 @@ int main()
         // Init task information (〃'▽'〃)
         init_task_info();
 
-        int* image_end_sec_addr = SWAP_START;
+        int *image_end_sec_addr = (int *)(uintptr_t)SWAP_START;
         image_end_sec = *image_end_sec_addr;
 
         // Init Process Control Blocks |•'-'•) ✧
@@ -302,7 +303,7 @@ int main()
 
         // 释放大内核锁，唤醒从核
         unlock_kernel();
-        wakeup_other_hart(NULL);
+        wakeup_other_hart();
         // 重新抢内核锁
         lock_kernel();
         cpu_id = 0;

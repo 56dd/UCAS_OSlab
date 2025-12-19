@@ -62,7 +62,7 @@
   /* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
   csrr t0, sstatus
   csrr t1, sepc
-  csrr t2, sbadaddr
+  csrr t2, stval
   csrr t3, scause
   sd t0, OFFSET_REG_SSTATUS(sp)
   sd t1, OFFSET_REG_SEPC(sp)
@@ -115,7 +115,7 @@
 
   csrw sstatus, t3
   csrw sepc, t4
-  csrw sbadaddr, t5
+  csrw stval, t5
   csrw scause, t6
 
   ld t3, OFFSET_REG_T3(sp)
@@ -252,7 +252,7 @@ ENTRY(ret_from_exception)
 
   csrw sstatus, t3
   csrw sepc, t4
-  csrw sbadaddr, t5
+  csrw stval, t5
   csrw scause, t6
 
   ld t3, OFFSET_REG_T3(sp)
